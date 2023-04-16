@@ -21,28 +21,28 @@ This is a simple scripting language ReDe
 ## Data types
 Syntax:
 
-**REDE_TYPE ...ARGS**
+**REDE_TYPE    ...ARGS**
  - **REDE_TYPE** specifies the format of the following data
 
 ### Number
 Represents 4-byte float.
 
-**REDE_TYPE_NUMBER VALUE**
+**REDE_TYPE_NUMBER    VALUE**
  - **REDE_TYPE_NUMBER** - **1 byte** - **0x00**
  - **VALUE** - **4 bytes** - float number in standard C format
 
 ### String
 Represents string with max length of 255.
 
-**REDE_TYPE_STRING STRING_LENGTH STRING_VALUE**
+**REDE_TYPE_STRING    STRING_LENGTH    STRING_VALUE**
  - **REDE_TYPE_STRING** - **1 byte** - **0x01**
  - **STRING_LENGTH** - **1 byte** - length of the string
- - **STRING_VALUE** - **STRING_LENGTH bytes** - **NULL TERMINATED** string chars in ASCII format
+ - **STRING_VALUE** - **STRING_LENGTH bytes** - string bytes in ASCII format
 
 ### Variable
 Represents value of variable
 
-**REDE_TYPE_VAR VARIABLE_NAME**
+**REDE_TYPE_VAR    VARIABLE_NAME**
  - **REDE_TYPE_VAR** - **1 byte** - **0x02**
  - **VARIABLE_NAME** - **1 byte** - variable name
 
@@ -59,7 +59,7 @@ Represents value of the last stack item
 ### Assign
 Assigns data to variable
 
-**REDE_CODE_ASSIGN NAME REDE_TYPE**
+**REDE_CODE_ASSIGN NAME    REDE_TYPE**
  - **REDE_CODE_ASSIGN** - **1 byte** - **0x00**
  - **NAME** - **1 byte** - range from **0x00** to **0xFF**
  - **REDE_TYPE** - data in one of the formats described [here](#data-types)
@@ -67,7 +67,7 @@ Assigns data to variable
 ### Push on stack
 Pushes value on the stack
 
-**REDE_CODE_STACK_PUSH REDE_TYPE**
+**REDE_CODE_STACK_PUSH    REDE_TYPE**
  - **REDE_CODE_STACK_PUSH** - **1 byte** - **0x01**
  - **REDE_TYPE** - data in one of the formats described [here](#data-types)
 
@@ -76,10 +76,16 @@ Calls function with specified name and number of arguments from the stack.
 
 Arguments will be taken from the stack and the result will be pushed to the stack.
 
-**REDE_CODE_CALL FUNCTION_NAME ARGUMENTS_NUMBER**
+**REDE_CODE_CALL    FUNCTION_NAME    ARGUMENTS_NUMBER**
  - **REDE_CODE_CALL** - **1 byte** - **0x02**
  - **FUNCTION_NAME** - **REDE_TYPE_STRING** - function name in format of [ReDe string](#string)
  - **ARGUMENTS_NUMBER** - **1 byte** - number of arguments
+
+### Clear stack
+Clears the program stack.
+
+**REDE_CODE_STACK_CLEAR**
+ - **REDE_CODE_STACK_CLEAR** - **1 byte** - **0x03**
 
 ### End
 Should be at the end of the program.

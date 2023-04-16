@@ -1,0 +1,15 @@
+#if !defined(REDE_BYT_CODES)
+#define REDE_BYT_CODES
+
+#define REDE_TYPE_NUMBER 0
+#define REDE_TYPE_STRING 1
+#define REDE_TYPE_VAR 2
+#define REDE_TYPE_STACK 3
+
+#define REDE_CODE_ASSIGN 0
+#define REDE_CODE_STACK_PUSH 1
+#define REDE_CODE_CALL 2
+#define REDE_CODE_STACK_CLEAR 3
+#define REDE_CODE_END 255
+
+#endif // REDE_BYT_CODES

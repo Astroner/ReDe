@@ -10,10 +10,30 @@ typedef enum RedeSourceType {
 
 typedef struct RedeSource {
     RedeSourceType type;
-    char* data;
+    union {
+        char* path;
+        char* string;
+    } data;
 } RedeSource;
 
-int Rede_compile(RedeSource* src, char* buffer, size_t bufferLength);
+int Rede_compile(RedeSource* src, char* resultBuffer, size_t resultBufferLength, RedeSource* result);
+
+typedef enum RedeByteCodeType {
+    RedeByteCodeTypeFile,
+    RedeByteCodeTypeBuffer,
+} RedeByteCodeType;
+
+typedef struct RedeByteCode {
+    RedeByteCodeType type;
+    union {
+        struct {
+            char* path;
+        } file;
+        struct {
+            unsigned char* buffer;
+        } buffer;
+    } data;
+} RedeByteCode;
 
 typedef enum RedeVariableType {
     RedeVariableTypeNumber,
@@ -21,6 +41,7 @@ typedef enum RedeVariableType {
 } RedeVariableType;
 
 typedef struct RedeVariable {
+    int busy;
     RedeVariableType type;
     union {
         float number;
@@ -36,25 +57,22 @@ typedef struct RedeFunctionArgs {
     int length;
 } RedeFunctionArgs;
 
-#define REDE_TYPE_NUMBER 0
-#define REDE_TYPE_STRING 1
-#define REDE_TYPE_VAR 2
-#define REDE_TYPE_STACK 3
-
-#define REDE_CODE_ASSIGN 0
-#define REDE_CODE_STACK_PUSH 1
-#define REDE_CODE_CALL 2
-#define REDE_CODE_END 255
+typedef struct RedeRuntimeMemory {
+    RedeVariable* variablesBuffer;
+    unsigned char variablesBufferSize;
+    RedeVariable* stack;
+    size_t stackSize;
+    size_t stackActualSize;
+    char* stringBuffer;
+    size_t stringBufferLength;
+    size_t stringBufferActualLength;
+} RedeRuntimeMemory;
 
 int Rede_execute(
-    unsigned char* program, 
+    RedeByteCode* program, 
+    RedeRuntimeMemory* memory,
     int (*)(const char* name, size_t nameLength, const RedeFunctionArgs* args, RedeVariable* result, void* sharedData),
     void* sharedData
 );
-
-void Rede_printVariable(RedeVariable*);
-void Rede_printlnVariable(RedeVariable*);
-void Rede_setNumber(RedeVariable* variable, float number);
-void Rede_setString(RedeVariable* variable, char* string, size_t length);
 
 #endif // REDE_H
