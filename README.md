@@ -21,7 +21,7 @@ This is a simple scripting language ReDe
 ## Data types
 Syntax:
 **REDE_TYPE ...ARGS**
-**REDE_TYPE** specifies the format of the following data
+ - **REDE_TYPE** specifies the format of the following data
 
 ### Number
 Represents 4-byte float.
