@@ -16,6 +16,7 @@ This is a simple scripting language ReDe
          - [End](#end)
      - [Example programs](#example-programs)
          - [Sum of 2 numbers](#sum-of-2-numbers)
+ - [Refs]($refs)
 
 # Byte code instructions
 ## Data types
@@ -112,3 +113,6 @@ unsigned char program[] = {
     REDE_CODE_END                                           // end the program
 };
 ```
+
+# Refs
+ - [ASCII Table](https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html)

@@ -1,7 +1,7 @@
 #if !defined(REDE_UTILS_H)
 #define REDE_UTILS_H
 
-#include "Rede.h"
+#include "RedeRuntime.h"
 
 void Rede_printVariable(RedeVariable*);
 void Rede_printlnVariable(RedeVariable*);

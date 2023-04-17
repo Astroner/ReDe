@@ -3,20 +3,6 @@
 
 #include <stdio.h>
 
-typedef enum RedeSourceType {
-    RedeSourceTypeFile,
-    RedeSourceTypeString,
-} RedeSourceType;
-
-typedef struct RedeSource {
-    RedeSourceType type;
-    union {
-        char* path;
-        char* string;
-    } data;
-} RedeSource;
-
-int Rede_compile(RedeSource* src, char* resultBuffer, size_t resultBufferLength, RedeSource* result);
 
 typedef enum RedeByteCodeType {
     RedeByteCodeTypeFile,
