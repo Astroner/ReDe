@@ -9,7 +9,7 @@ all: build
 	$(EXECUTABLE)
 
 build: $(OBJECTS)
-	$(CC) -o $(EXECUTABLE) $^
+	$(CC) $(CFLAGS) -o $(EXECUTABLE) $^
 
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ -I$(HEADERS) -Wall -Wextra -std=c99 -pedantic $<

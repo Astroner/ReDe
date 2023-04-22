@@ -45,7 +45,7 @@ typedef struct RedeFunctionArgs {
 
 typedef struct RedeRuntimeMemory {
     RedeVariable* variablesBuffer;
-    unsigned char variablesBufferSize;
+    size_t variablesBufferSize;
     RedeVariable* stack;
     size_t stackSize;
     size_t stackActualSize;

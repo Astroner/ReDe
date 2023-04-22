@@ -196,7 +196,7 @@ static int functionCall(
     if(status < 0) {
         return status - 1;
     }
-
+    memory->stringBufferActualLength -= name.data.string.length;
     argumentsStart->type = result.type;
     argumentsStart->data = result.data;
     memory->stackActualSize++;
@@ -231,6 +231,7 @@ int Rede_execute(
                 break;
             default:
                 printf("Unknown statement\n");
+                return -1;
         }
         if(status < 0) {
             printf("Something went wrong\n");

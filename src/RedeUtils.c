@@ -35,10 +35,10 @@ void Rede_printMemory(RedeRuntimeMemory* memory) {
         printf("%zu) ", i);
         Rede_printlnVariable(memory->stack + i);
     }
-    printf("\nVariables: (%d)\n", memory->variablesBufferSize);
-    for(unsigned char i = 0; i < memory->variablesBufferSize; i++) {
+    printf("\nVariables: (%zu)\n", memory->variablesBufferSize);
+    for(size_t i = 0; i < memory->variablesBufferSize; i++) {
         if(memory->variablesBuffer[i].busy) {
-            printf("%d) ", i);
+            printf("%zu) ", i);
             Rede_printlnVariable(memory->variablesBuffer + i);
         }
     }
