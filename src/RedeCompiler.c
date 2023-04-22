@@ -102,6 +102,12 @@ static int writeFloat(char firstChar, RedeSourceIterator* iterator, RedeCompilat
     return 0;
 }
 
+static writeString(RedeSourceIterator* iterator, RedeCompilationMemory* memory) {
+    LOGS_SCOPE(writeString);
+
+    
+}
+
 static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory) {
     LOGS_SCOPE(writeExpression);
 

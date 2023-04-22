@@ -102,14 +102,14 @@ unsigned char program[] = {
     REDE_CODE_ASSIGN, 1, REDE_TYPE_NUMBER, 0, 0, 64, 64,    // assign 3.0f to index 1
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                 // push data from index "0" on the stack
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 1,                 // push data from index "1" on the stack
-    REDE_CODE_CALL, 4, 's', 'u', 'm', '\0', 2,              // call function "sum" with 2 arguments from the stack and push the result back
+    REDE_CODE_CALL, 3, 's', 'u', 'm', 2,                    // call function "sum" with 2 arguments from the stack and push the result back
     REDE_CODE_ASSIGN, 2, REDE_TYPE_STACK,                   // take last item from the stack and assign it to index 2
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                 // push data from index "0" on the stack
-    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 2, '+', '\0',   // push string "+" on the stack
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 1, '+',         // push string "+" on the stack
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 1,                 // push data from index "1" on the stack
-    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 2, '=', '\0',   // push string "=" on the stack
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 1, '=',         // push string "=" on the stack
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 2,                 // push data from index "2" on the stack
-    REDE_CODE_CALL, 4, 'l', 'o', 'g', '\0', 5,              // call function "log" with 5 arguments from the stack and push the result back
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 5,                    // call function "log" with 5 arguments from the stack and push the result back
     REDE_CODE_END                                           // end the program
 };
 ```
