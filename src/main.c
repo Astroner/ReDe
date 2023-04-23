@@ -29,6 +29,8 @@ int functionCall(
         assert(args->length == 2);
         assert(args->values[0].type == RedeVariableTypeNumber && args->values[1].type == RedeVariableTypeNumber);
         Rede_setNumber(result, args->values[0].data.number + args->values[1].data.number);
+    } else if(strncmp(name, "random", nameLength) == 0) {
+        Rede_setNumber(result, 0);
     } else if(strncmp(name, "return", nameLength) == 0) {
         assert(args->length == 1);
         assert(args->values[0].type == RedeVariableTypeNumber);
@@ -40,86 +42,41 @@ int functionCall(
     return 0;
 }
 
-// int main(void) {
-//     unsigned char bytes[] = {
-//         REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'h', 'i', '!',
-//         REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
-//         REDE_CODE_STACK_CLEAR,
-//         REDE_CODE_END
-//     };
-//     RedeByteCode src = {
-//         .type = RedeByteCodeTypeBuffer,
-//         .data = {
-//             .buffer = {
-//                 .buffer = bytes
-//             }
-//         }
-//     };
-
-//     RedeVariable stack[256];
-//     memset(stack, 0, sizeof(stack));
-
-//     RedeVariable variables[256];
-//     memset(variables, 0, sizeof(variables));
-    
-//     char strings[256];
-//     memset(strings, 0, sizeof(strings));
-
-//     RedeRuntimeMemory memory = {
-//         .stack = stack,
-//         .stackActualSize = 0,
-//         .stackSize = 256,
-//         .stringBuffer = strings,
-//         .stringBufferActualLength = 0,
-//         .stringBufferLength = 256,
-//         .variablesBuffer = variables,
-//         .variablesBufferSize = 256,
-//     };
-
-//     Rede_execute(&src, &memory, functionCall, NULL);
-
-//     Rede_printMemory(&memory);
-
-//     return 0;
-// }
 int main(void) {
-    char srcCode[] = "aaa=1 aaa = 2 bb=3";
+    Rede_createStringSource(
+        code,
+        "log("
+            "sum("
+                "sum(1 2)\n"
+                "sum(3 4)"
+            ")"
+        ")"
+    );
 
-    RedeSource src = {
-        .type = RedeSourceTypeString,
-        .data = {
-            .string = srcCode
-        }
-    };
+    Rede_createCompilationMemory(memory, 100, 256);
 
-    unsigned char buffer[100];
-    memset(buffer, 0, sizeof(buffer));
-
-    RedeVariableName names[256];
-    memset(names, 0, sizeof(names));
-
-    RedeCompilationMemory memory = {
-        .buffer = buffer,
-        .bufferLength = sizeof(buffer),
-        .bufferActualLength = 0,
-        .variables = {
-            .buffer = names,
-            .bufferSize = 256,
-            .nextIndex = 0,
-        }
-    };
-
-    Rede_compile(&src, &memory);
+    int status = Rede_compile(code, memory);
 
     printf("\nCode:\n");
     for(size_t i = 0; i < 100; i++) {
-        printf("%d ", buffer[i]);
+        printf("%d ", memory->buffer[i]);
         if(i % 32 == 0 && i != 0) {
             printf("\n");
         }
     }
     printf("\n");
 
+    if(status < 0) return 1;
+
+    printf("Executing the code...\n");
+
+    Rede_createByteCodeFromBuffer(bytes, memory->buffer);
+
+    Rede_createRuntimeMemory(runtimeMemory, 256, 256, 256);
+
+    Rede_execute(bytes, runtimeMemory, functionCall, NULL);
+
+    Rede_printMemory(runtimeMemory);
 
     return 0;
 }

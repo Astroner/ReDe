@@ -2,6 +2,7 @@
 #define REDE_COMPILER_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef enum RedeSourceType {
     RedeSourceTypeFile,
@@ -33,6 +34,35 @@ typedef struct RedeCompilationMemory {
         size_t bufferSize;
     } variables;
 } RedeCompilationMemory;
+
+
+#define Rede_createStringSource(name, code)\
+    RedeSource name##__data = {\
+        .type = RedeSourceTypeString,\
+        .data = {\
+            .string = code\
+        }\
+    };\
+    RedeSource* name = &name##__data;
+
+
+
+#define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\
+    unsigned char name##__buffer[programBufferSize];\
+    memset(name##__buffer, 0, sizeof(name##__buffer));\
+    RedeVariableName name##__names[256];\
+    memset(name##__names, 0, sizeof(name##__names));\
+    RedeCompilationMemory name##__data = {\
+        .buffer = name##__buffer,\
+        .bufferLength = programBufferSize,\
+        .bufferActualLength = 0,\
+        .variables = {\
+            .buffer = name##__names,\
+            .bufferSize = variablesBufferSize,\
+            .nextIndex = 0,\
+        }\
+    };\
+    RedeCompilationMemory* name = &name##__data;
 
 int Rede_compile(RedeSource* src, RedeCompilationMemory* memory);
 

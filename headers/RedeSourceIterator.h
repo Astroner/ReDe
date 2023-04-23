@@ -2,7 +2,7 @@
 #define REDE_SOURCE_ITERATOR
 
 typedef enum RedeSourceIteratorType {
-    RedeByteIteratorTypeString
+    RedeSourceIteratorTypeString
 } RedeSourceIteratorType;
 
 typedef struct RedeSourceIterator {
@@ -17,5 +17,6 @@ typedef struct RedeSourceIterator {
 int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator);
 char RedeSourceIterator_nextChar(RedeSourceIterator* iterator);
 char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index);
+char RedeSourceIterator_current(RedeSourceIterator* iterator);
 
 #endif // REDE_SOURCE_ITERATOR

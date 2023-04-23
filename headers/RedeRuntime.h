@@ -1,7 +1,8 @@
-#if !defined(REDE_H)
-#define REDE_H
+#if !defined(REDE_RUNTIME_H)
+#define REDE_RUNTIME_H
 
 #include <stdio.h>
+#include <string.h>
 
 
 typedef enum RedeByteCodeType {
@@ -54,6 +55,49 @@ typedef struct RedeRuntimeMemory {
     size_t stringBufferActualLength;
 } RedeRuntimeMemory;
 
+#define Rede_createByteCodeFromBuffer(name, bytesBuffer)\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = (bytesBuffer)\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+#define Rede_createByteCode(name, ...)\
+    unsigned char name##__buffer[] = { __VA_ARGS__ };\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = name##__buffer\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+
+#define Rede_createRuntimeMemory(name, stackSizeA, variablesBufferSizeA, stringBufferSizeA)\
+    RedeVariable name##__stack[stackSizeA];\
+    memset(name##__stack, 0, sizeof(name##__stack));\
+    RedeVariable name##__variables[variablesBufferSizeA];\
+    memset(name##__variables, 0, sizeof(name##__variables));\
+    char name##__strings[stringBufferSizeA];\
+    memset(name##__strings, 0, stringBufferSizeA);\
+    RedeRuntimeMemory name##__data = {\
+        .stack = name##__stack,\
+        .stackActualSize = 0,\
+        .stackSize = stackSizeA,\
+        .stringBuffer = name##__strings,\
+        .stringBufferActualLength = 0,\
+        .stringBufferLength = stringBufferSizeA,\
+        .variablesBuffer = name##__variables,\
+        .variablesBufferSize = variablesBufferSizeA,\
+    };\
+    RedeRuntimeMemory* name = &name##__data;
+
 int Rede_execute(
     RedeByteCode* program, 
     RedeRuntimeMemory* memory,
@@ -61,4 +105,4 @@ int Rede_execute(
     void* sharedData
 );
 
-#endif // REDE_H
+#endif // REDE_RUNTIME_H
