@@ -4,7 +4,7 @@
 
 #include "RedeCompiler.h"
 #include "RedeRuntime.h"
-#include "RedeUtils.h"
+#include "RedeRuntimeUtils.h"
 #include "RedeByteCodes.h"
 
 int functionCall(

@@ -19,8 +19,10 @@ build: $(OBJECTS)
 # Builds runtime STB-like lib
 runtime: headers/RedeRuntime.h headers/RedeByteCodes.h src/RedeRuntime.c
 	cat headers/RedeRuntime.h > $(RUNTIME_LIB_NAME)
+	tail -n +2 headers/RedeRuntimeUtils.h >> $(RUNTIME_LIB_NAME)
 	echo "#if defined(REDE_RUNTIME_IMPLEMENTATION)" >> $(RUNTIME_LIB_NAME)
 	cat headers/RedeByteCodes.h >> $(RUNTIME_LIB_NAME)
+	tail -n +2 src/RedeRuntimeUtils.c >> $(RUNTIME_LIB_NAME)
 	tail -n +3 src/RedeRuntime.c >> $(RUNTIME_LIB_NAME)
 	echo "\n#endif // REDE_RUNTIME_IMPLEMENTATION" >> $(RUNTIME_LIB_NAME)
 
