@@ -11,13 +11,7 @@
 int main(void) {
     Rede_createStringSource(
         code,
-        "log("
-            "'Result:'\n"
-            "sum("
-                "sum(1 2)\n"
-                "sum(3 4)"
-            ")"
-        ")"
+        "log(length('hi!'))"
     );
 
     Rede_createCompilationMemory(memory, 100, 256);

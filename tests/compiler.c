@@ -60,11 +60,34 @@ void compilesFunctionCalls() {
     );
 }
 
+void compilesFunctionCallsInsideOfFunctionCalls() {
+    Rede_createStringSource(src,
+        "log(sum(2   2)   length('kekW'))"
+    );
+
+    Rede_createCompilationMemory(memory, 256, 100);
+
+    assert(Rede_compile(src, memory) == 0);
+
+    MATCH(
+        memory->buffer,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_CALL, 3, 's', 'u', 'm', 2,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 4, 'k', 'e', 'k', 'W',
+        REDE_CODE_CALL, 6, 'l', 'e', 'n', 'g', 't', 'h', 1,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,
+        REDE_CODE_STACK_CLEAR,
+        REDE_CODE_END
+    );
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
     TEST(compilesFunctionCalls);
-
+    TEST(compilesFunctionCallsInsideOfFunctionCalls);
+    
     printf("\n");
     return 0;
 }

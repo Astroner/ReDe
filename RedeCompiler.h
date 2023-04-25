@@ -511,10 +511,12 @@ static int writeFunctionCall(
         CHECK(writeByte(memory, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
         int status = writeExpression(iterator, memory, ctx);
         CHECK(status, -10, "Failed to write parameter with index %zu", argc - 1);
-        
-        if(status == 1) {
-            CHECK(writeByte(memory, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH after function call");
-            CHECK(writeByte(memory, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
+
+        if(status == 3) {
+            LOG_LN("Got status 3 - just ')' at the end without expression");
+            break;
+        } else {
+            argc++;
         }
 
         char argEndingChar = RedeSourceIterator_current(iterator);
@@ -529,7 +531,6 @@ static int writeFunctionCall(
 
             return -2;
         }
-        argc++;
     }
     if(ctx->functionCallDepth > 1) {
         LOG_LN("Have to check next char because of function call inside of function call");
@@ -631,7 +632,7 @@ static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* 
             LOG_LN("Moving cursor back by 1");
             memory->bufferActualLength--;
             
-            return 0;
+            return 3;
         } else {
             LOG_LN("Unexpected token");
             return -1;

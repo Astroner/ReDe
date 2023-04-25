@@ -1,6 +1,8 @@
 #include "RedeStd.h"
 
-static unsigned long hash(const char* str) {
+#include <string.h>
+
+static unsigned long Rede_std_hash(const char* str) {
     unsigned long hash = 5381;
     
     char ch;
@@ -11,7 +13,7 @@ static unsigned long hash(const char* str) {
     return hash;
 }
 
-static int sum(const RedeFunctionArgs* args, RedeVariable* result) {
+static int Rede_std_sum(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setNumber(result, 0);
         return 0;
@@ -27,7 +29,34 @@ static int sum(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int logToConsole(const RedeFunctionArgs* args, RedeVariable* result) {
+static int Rede_std_mult(const RedeFunctionArgs* args, RedeVariable* result) {
+    if(args->length == 0) {
+        Rede_setNumber(result, 0);
+        return 0;
+    }
+    float number = 1;
+
+    for(int i = 0; i < args->length; i++) {
+        number *= args->values[i].data.number;
+    }
+    
+    Rede_setNumber(result, number);
+
+    return 0;
+}
+
+static int Rede_std_length(const RedeFunctionArgs* args, RedeVariable* result) {
+    if(args->length == 0 || args->values->type == RedeVariableTypeNumber) {
+        Rede_setNumber(result, 0);
+        return 0;
+    }
+    
+    Rede_setNumber(result, (float)(args->values->data.string.length - 1));
+
+    return 0;
+}
+
+static int Rede_std_log(const RedeFunctionArgs* args, RedeVariable* result) {
     for(int i = 0; i < args->length; i++) {
         Rede_printVariable(args->values + i);
         if(i < args->length - 1) {
@@ -41,13 +70,16 @@ static int logToConsole(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-typedef struct Function {
+typedef struct RedeFunction {
+    char* name;
     int(*call)(const RedeFunctionArgs* args, RedeVariable* result);
-} Function;
+} RedeFunction;
 
-Function functions[] = {
-    { sum },
-    { logToConsole }
+RedeFunction functions[7] = {
+    [0] = { "log", Rede_std_log },
+    [1] = { "sum", Rede_std_sum },
+    [3] = { "mult", Rede_std_mult },
+    [5] = { "length", Rede_std_length },
 };
 
 int Rede_std(
@@ -55,11 +87,11 @@ int Rede_std(
     const RedeFunctionArgs* args, RedeVariable* result, 
     void* sharedData __attribute__ ((unused))
 ) {
-    unsigned long index = hash(name) % (sizeof(functions) / sizeof(void*));
+    unsigned long index = Rede_std_hash(name) % (sizeof(functions) / sizeof(RedeFunction));
 
-    Function* function = functions + index;
+    RedeFunction function = functions[index];
 
-    function->call(args, result);
+    if(strcmp(function.name, name) != 0) return -2;
 
-    return 0;
+    return function.call(args, result);
 }

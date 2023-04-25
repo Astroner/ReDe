@@ -7,6 +7,7 @@ EXECUTABLE=./rede
 
 RUNTIME_LIB_NAME=RedeRuntime.h
 COMPILER_LIB_NAME=RedeCompiler.h
+STD_LIB_NAME=RedeSTD.h
 
 all: build
 	$(EXECUTABLE)
@@ -27,6 +28,8 @@ runtime: headers/RedeRuntime.h headers/RedeByteCodes.h src/RedeRuntime.c
 	tail -n +3 src/RedeRuntime.c >> $(RUNTIME_LIB_NAME)
 	echo "\n#endif // REDE_RUNTIME_IMPLEMENTATION" >> $(RUNTIME_LIB_NAME)
 
+
+
 # Builds compiler STB-like lib
 compiler: headers/RedeCompiler.h headers/RedeSourceIterator.h headers/logs.h headers/RedeByteCodes.h src/RedeCompiler.c src/RedeSourceIterator.c
 	cat headers/RedeCompiler.h > $(COMPILER_LIB_NAME)
@@ -41,6 +44,9 @@ compiler: headers/RedeCompiler.h headers/RedeSourceIterator.h headers/logs.h hea
 	echo "\n" >> $(COMPILER_LIB_NAME)
 	tail -n +5 src/RedeCompiler.c >> $(COMPILER_LIB_NAME)
 	echo "\n#endif // REDE_COMPILER_IMPLEMENTATION" >> $(COMPILER_LIB_NAME)
+
+# Build standard library
+std: 
 
 
 # Builds libs
