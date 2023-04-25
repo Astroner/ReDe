@@ -28,4 +28,9 @@ In ReDe you cant define your own functions, you can only use provided functions 
 sum = sum(1 2)
 log(sum)
 ```
-Function arguments are divided by any whitespace
+As you see, the function arguments are separated by any whitespace in any numbers. For example, the code below is also valid code:
+```ts
+log(   2222    3     
+4  5
+)
+```
