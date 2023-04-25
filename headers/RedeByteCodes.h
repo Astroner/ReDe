@@ -1,5 +1,5 @@
-#if !defined(REDE_BYT_CODES)
-#define REDE_BYT_CODES
+#if !defined(REDE_BYTE_CODES)
+#define REDE_BYTE_CODES
 
 #define REDE_TYPE_NUMBER 0
 #define REDE_TYPE_STRING 1
@@ -12,4 +12,4 @@
 #define REDE_CODE_STACK_CLEAR 3
 #define REDE_CODE_END 255
 
-#endif // REDE_BYT_CODES
+#endif // REDE_BYTE_CODES

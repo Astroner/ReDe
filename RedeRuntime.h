@@ -117,9 +117,10 @@ void Rede_setString(RedeVariable* variable, char* string, size_t length);
 void Rede_printMemory(RedeRuntimeMemory*);
 
 #endif // REDE_RUNTIME_UTILS_H
+
 #if defined(REDE_RUNTIME_IMPLEMENTATION)
-#if !defined(REDE_BYT_CODES)
-#define REDE_BYT_CODES
+#if !defined(REDE_BYTE_CODES)
+#define REDE_BYTE_CODES
 
 #define REDE_TYPE_NUMBER 0
 #define REDE_TYPE_STRING 1
@@ -132,7 +133,7 @@ void Rede_printMemory(RedeRuntimeMemory*);
 #define REDE_CODE_STACK_CLEAR 3
 #define REDE_CODE_END 255
 
-#endif // REDE_BYT_CODES
+#endif // REDE_BYTE_CODES
 
 void Rede_setNumber(RedeVariable* variable, float number) {
     variable->type = RedeVariableTypeNumber;

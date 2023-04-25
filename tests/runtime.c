@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "testing.h"
+
 #define REDE_RUNTIME_IMPLEMENTATION
 #include "../RedeRuntime.h"
-
-#define TEST(function)\
-    printf("%s - ", #function);\
-    function();\
-    printf("PASS\n");\
 
 int funcCall(const char *name, size_t nameLength, const RedeFunctionArgs *args, RedeVariable *result, void *sharedData) {
     float* data = sharedData;

@@ -1,7 +1,231 @@
-#include "RedeCompiler.h"
-#include "RedeByteCodes.h"
-#include "RedeSourceIterator.h"
-#include "logs.h"
+#if !defined(REDE_COMPILER_H)
+#define REDE_COMPILER_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef enum RedeSourceType {
+    RedeSourceTypeFile,
+    RedeSourceTypeString,
+} RedeSourceType;
+
+typedef struct RedeSource {
+    RedeSourceType type;
+    union {
+        char* path;
+        char* string;
+    } data;
+} RedeSource;
+
+typedef struct RedeVariableName {
+    int isBusy;
+    unsigned char index;
+    size_t start;
+    size_t length;
+} RedeVariableName;
+
+typedef struct RedeCompilationMemory {
+    unsigned char* buffer;
+    size_t bufferLength;
+    size_t bufferActualLength;
+    struct {
+        unsigned char nextIndex;
+        RedeVariableName* buffer;
+        size_t bufferSize;
+    } variables;
+} RedeCompilationMemory;
+
+
+#define Rede_createStringSource(name, code)\
+    RedeSource name##__data = {\
+        .type = RedeSourceTypeString,\
+        .data = {\
+            .string = code\
+        }\
+    };\
+    RedeSource* name = &name##__data;
+
+
+
+#define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\
+    unsigned char name##__buffer[programBufferSize];\
+    memset(name##__buffer, 0, sizeof(name##__buffer));\
+    RedeVariableName name##__names[256];\
+    memset(name##__names, 0, sizeof(name##__names));\
+    RedeCompilationMemory name##__data = {\
+        .buffer = name##__buffer,\
+        .bufferLength = programBufferSize,\
+        .bufferActualLength = 0,\
+        .variables = {\
+            .buffer = name##__names,\
+            .bufferSize = variablesBufferSize,\
+            .nextIndex = 0,\
+        }\
+    };\
+    RedeCompilationMemory* name = &name##__data;
+
+int Rede_compile(RedeSource* src, RedeCompilationMemory* memory);
+
+#endif // REDE_COMPILER_H
+
+#if defined(REDE_COMPILER_IMPLEMENTATION)
+#if !defined(REDE_SOURCE_ITERATOR)
+#define REDE_SOURCE_ITERATOR
+
+typedef enum RedeSourceIteratorType {
+    RedeSourceIteratorTypeString
+} RedeSourceIteratorType;
+
+typedef struct RedeSourceIterator {
+    size_t index;
+    int finished;
+    RedeSourceIteratorType type;
+    union {
+        char* string;
+    } data;
+} RedeSourceIterator;
+
+int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator);
+char RedeSourceIterator_nextChar(RedeSourceIterator* iterator);
+char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index);
+char RedeSourceIterator_current(RedeSourceIterator* iterator);
+
+#endif // REDE_SOURCE_ITERATOR
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator) {
+    iterator->index = -1;
+    iterator->finished = 0;
+    switch(src->type) {
+        case RedeSourceTypeString:
+            iterator->type = RedeSourceIteratorTypeString;
+            iterator->data.string = src->data.string;
+            break;
+
+        case RedeSourceTypeFile:
+            fprintf(stderr, "File source is not implemented\n");
+            exit(1);
+            break;
+    }
+
+    return 0;
+}
+
+char RedeSourceIterator_nextChar(RedeSourceIterator* iterator) {
+    if(iterator->finished) return '\0';
+    iterator->index++;
+    switch(iterator->type) {
+        case RedeSourceIteratorTypeString: {
+            char ch = iterator->data.string[iterator->index];
+            if(!ch) iterator->finished = 1;
+            return ch;
+        }
+        default:
+            fprintf(stderr, "File source is not implemented\n");
+            exit(1);
+    }
+}
+
+char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
+    switch(iterator->type) {
+        case RedeSourceIteratorTypeString: 
+            return iterator->data.string[index];
+
+        default:
+            fprintf(stderr, "File source is not implemented\n");
+            exit(1);
+    }
+}
+
+char RedeSourceIterator_current(RedeSourceIterator* iterator) {
+    switch(iterator->type) {
+        case RedeSourceIteratorTypeString:
+            return iterator->data.string[iterator->index];
+            
+        default:
+            fprintf(stderr, "File source is not implemented\n");
+            exit(1);
+    }
+}
+
+#if !defined(LOGS_H)
+#define LOGS_H
+
+#include <stdio.h>
+
+#if defined(REDE_DO_LOGS)
+    #define LOGS_SCOPE(name)\
+        char* logs__scope__name = #name;\
+        printf("LOGS '%s'\n", logs__scope__name);\
+
+    #define LOG(...)\
+        do {\
+            printf("LOGS '%s' ", logs__scope__name);\
+            printf(__VA_ARGS__);\
+        } while(0);\
+    
+    #define LOG_LN(...)\
+        do {\
+            LOG(__VA_ARGS__);\
+            printf("\n");\
+        } while(0);\
+
+    #define CHECK(condition, modifier, ...)\
+        do {\
+            int status = (condition);\
+            if(status < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, status);\
+                printf(__VA_ARGS__);\
+                printf("\n");\
+                return status + (modifier);\
+            }\
+        } while(0);\
+
+    #define LOGS_ONLY(code) code
+
+#else
+    #define LOGS_SCOPE(name)
+    #define LOG(...)
+    #define LOG_LN(...)
+
+    #define CHECK(condition, modifier, ...)\
+        do {\
+            int status = (condition);\
+            if(status < 0) return status + (modifier);\
+        } while(0);\
+
+    #define LOGS_ONLY(code)
+
+#endif // REDE_DO_LOGS
+
+
+#endif // LOGS_H
+
+
+#if !defined(REDE_BYTE_CODES)
+#define REDE_BYTE_CODES
+
+#define REDE_TYPE_NUMBER 0
+#define REDE_TYPE_STRING 1
+#define REDE_TYPE_VAR 2
+#define REDE_TYPE_STACK 3
+
+#define REDE_CODE_ASSIGN 0
+#define REDE_CODE_STACK_PUSH 1
+#define REDE_CODE_CALL 2
+#define REDE_CODE_STACK_CLEAR 3
+#define REDE_CODE_END 255
+
+#endif // REDE_BYTE_CODES
+
+
 
 
 
@@ -550,3 +774,4 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
         return 0;
     }
 }
+#endif // REDE_COMPILER_IMPLEMENTATION
