@@ -1,6 +1,4 @@
-#define REDE_COMPILER_IMPLEMENTATION
-#define REDE_RUNTIME_IMPLEMENTATION
-#define REDE_STD_IMPLEMENTATION
+#define REDE_IMPLEMENTATION
 #include "../Rede.h"
 
 #include "testing.h"

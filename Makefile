@@ -59,7 +59,12 @@ std: headers/RedeStd.h src/RedeStd.c
 
 # Builds general lib
 general: runtime compiler std
-	cat $(RUNTIME_LIB_NAME) > $(GENERAL_LIB_NAME)
+	echo "#if defined(REDE_IMPLEMENTATION)" > $(GENERAL_LIB_NAME)
+	echo "#define REDE_COMPILER_IMPLEMENTATION" >> $(GENERAL_LIB_NAME)
+	echo "#define REDE_RUNTIME_IMPLEMENTATION" >> $(GENERAL_LIB_NAME)
+	echo "#define REDE_STD_IMPLEMENTATION" >> $(GENERAL_LIB_NAME)
+	echo "#endif // REDE_IMPLEMENTATION" >> $(GENERAL_LIB_NAME)
+	cat $(RUNTIME_LIB_NAME) >> $(GENERAL_LIB_NAME)
 	cat $(COMPILER_LIB_NAME) >> $(GENERAL_LIB_NAME)
 	tail -n +7 $(STD_LIB_NAME) >> $(GENERAL_LIB_NAME)
 
