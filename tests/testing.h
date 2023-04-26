@@ -2,9 +2,8 @@
 #define TESTING_H
 
 #define TEST(function)\
-    printf("%s - ", #function);\
     function();\
-    printf("PASS\n");\
+    printf("%s - PASS", #function);\
 
 
 #endif // TESTING_H
