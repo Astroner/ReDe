@@ -1307,8 +1307,11 @@ typedef struct RedeFunction {
 RedeFunction functions[7] = {
     [0] = { "log", Rede_std_log },
     [1] = { "sum", Rede_std_sum },
+    [2] = { "" },
     [3] = { "mult", Rede_std_mult },
+    [4] = { "" },
     [5] = { "length", Rede_std_length },
+    [6] = { "" },
 };
 
 int Rede_std(
