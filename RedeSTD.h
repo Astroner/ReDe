@@ -73,7 +73,7 @@ static int Rede_std_log(const RedeFunctionArgs* args, RedeVariable* result) {
     for(int i = 0; i < args->length; i++) {
         Rede_printVariable(args->values + i);
         if(i < args->length - 1) {
-            printf(", ");
+            printf(" ");
         }
     }
     printf("\n");

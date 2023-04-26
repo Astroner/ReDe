@@ -1,4 +1,5 @@
 *.rede
 *.o
 rede
+rede-core
 .vscode

@@ -28,7 +28,8 @@ int fCall(const char *name, size_t nameLength, const RedeFunctionArgs *args, Red
 }
 
 int main(void) {
-    printf("ReDe Scripting CLI\n");
+    printf("Guten Tag!\n");
+    printf("ReDe CLI v0.1\n");
 
     char buffer[MAX_LINE_WIDTH];
     memset(buffer, 0, MAX_LINE_WIDTH);
@@ -45,6 +46,7 @@ int main(void) {
     };
 
     while(!data.quit) {
+        printf("> ");
         fgets(buffer, MAX_LINE_WIDTH, stdin);
 
         int status = Rede_compile(code, compilation);
