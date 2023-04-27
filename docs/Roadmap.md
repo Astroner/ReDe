@@ -1,5 +1,5 @@
 # ReDe roadmap
- - [x] Design bytecode and document it
+ - [x] Design bytecode and document it - [docs](https://github.com/Astroner/ReDe/blob/master/docs/Bytecode.md)
  - [x] Implement bytecode runtime - *RedeRuntime.h*
  - [x] Design the language
  - [x] Implement the compiler - *RedeCompiler.h*
@@ -7,12 +7,12 @@
  - [x] Wrap everything into the general lib - *Rede.h*
  - [x] Implement simple CLI runtime with an ability to write code line-by-line
      - Root file -  *cli/src/main.c*
-     - Build executable - ```console make build-cli```
+     - Build executable - ```make build-cli```
  - [x] Implement the ability to compile bytecode from file source
- - [.] Implement **RedeDist** structure to separate compilation into buffer and into file
- - [.] Implement the ability to compile into .rd file
- - [.] Implement the ability to execute bytecode from .rd files
- - [.] Improve CLI tool to use new file features
- - [.] Implement if-statements on bytecode level
- - [.] Implement if-statements on compiler level
- - [.] implement the ability to compile into .c files
+ - [ ] Implement **RedeDist** structure to separate compilation into buffer and into file
+ - [ ] Implement the ability to compile into .rd file
+ - [ ] Implement the ability to execute bytecode from .rd files
+ - [ ] Improve CLI tool to use new file features
+ - [ ] Implement if-statements on bytecode level
+ - [ ] Implement if-statements on compiler level
+ - [ ] implement the ability to compile into .c files
