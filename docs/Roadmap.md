@@ -15,4 +15,5 @@
  - [ ] Improve CLI tool to use new file features
  - [ ] Implement if-statements on bytecode level
  - [ ] Implement if-statements on compiler level
- - [ ] implement the ability to compile into .c files
+ - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
+ - [ ] Implement the ability to compile into .c files
