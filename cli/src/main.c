@@ -18,10 +18,10 @@ int fCall(const char *name, size_t nameLength, const RedeFunctionArgs *args, Red
 
     if(strcmp(name, "memory") == 0) {
         Rede_printMemory(data->memory);
-        return 0;
     } else if(strcmp(name, "quit") == 0 || strcmp(name, "q") == 0) {
         data->quit = 1;
-        return 0;
+    } else {
+        return -2;
     }
 
     return 0;
@@ -44,11 +44,34 @@ int main(void) {
         .quit = 0,
         .memory = runtime,
     };
-
+    
     while(!data.quit) {
         printf("> ");
-        fgets(buffer, MAX_LINE_WIDTH, stdin);
 
+        size_t inputLength = 0;
+        size_t bracketsDepth = 0;
+        while(1) {
+            char ch = getc(stdin);
+            buffer[inputLength] = ch;
+            inputLength++;
+            
+            if(ch == '(') {
+                bracketsDepth++;
+            } else if(ch == ')') {
+                if(bracketsDepth > 0) bracketsDepth--;
+            } else if(ch == '\n') {
+                if(bracketsDepth == 0) break;
+                else {
+                    printf(".");
+                    for(size_t i = 0; i < bracketsDepth; i++) {
+                        printf("..");
+                    }
+                    printf(" ");
+                }
+            }
+
+            if(inputLength == MAX_LINE_WIDTH - 1) break;
+        }
         int status = Rede_compile(code, compilation);
 
         if(status < 0) {

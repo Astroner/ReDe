@@ -31,7 +31,7 @@ build-cli: $(CLI_EXECUTABLE)
 $(CLI_EXECUTABLE): $(CLI_OBJECTS)
 	$(CC) $(CFLAGS) -o $(CLI_EXECUTABLE) $^
 
-$(CLI_OBJECTS): %.o: %.c
+$(CLI_OBJECTS): %.o: %.c $(GENERAL_LIB_NAME)
 	$(CC) $(CFLAGS) -c -o $@ -I$(CLI_HEADERS) -I./ -Wall -Wextra -std=c99 -pedantic $<
 
 
