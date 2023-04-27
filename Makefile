@@ -130,4 +130,4 @@ clean:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -f $(RUNTIME_LIB_NAME) $(COMPILER_LIB_NAME)
+	rm -f $(RUNTIME_LIB_NAME) $(COMPILER_LIB_NAME) $(STD_LIB_NAME) $(GENERAL_LIB_NAME)
