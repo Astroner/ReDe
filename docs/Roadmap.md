@@ -16,4 +16,5 @@
  - [ ] Implement if-statements on bytecode level
  - [ ] Implement if-statements on compiler level
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
- - [ ] Implement the ability to compile into .c files
+ - [ ] Improve error handling to provide more info about the problem
+ - [ ] Implement the ability for CLI tool to compile into .c files
