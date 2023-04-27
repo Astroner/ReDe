@@ -1,5 +1,5 @@
 # ReDe roadmap
- - [x] Design bytecode and document it - [docs](https://github.com/Astroner/ReDe/blob/master/docs/Bytecode.md)
+ - [x] Design bytecode and document it - [Bytecode specification](https://github.com/Astroner/ReDe/blob/master/docs/Bytecode.md)
  - [x] Implement bytecode runtime - *RedeRuntime.h*
  - [x] Design the language
  - [x] Implement the compiler - *RedeCompiler.h*
