@@ -82,11 +82,31 @@ void compilesFunctionCallsInsideOfFunctionCalls() {
     );
 }
 
+void compilesFromFileSource() {
+    Rede_createFileSource(src, "./tests/test-code.txt");
+
+    Rede_createCompilationMemory(memory, 256, 100);
+
+    assert(Rede_compile(src, memory) == 0);
+
+    MATCH(
+        memory->buffer,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 1,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,
+        REDE_CODE_STACK_CLEAR,
+        REDE_CODE_END
+    );
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
     TEST(compilesFunctionCalls);
     TEST(compilesFunctionCallsInsideOfFunctionCalls);
+    TEST(compilesFromFileSource);
     
     printf("\n");
     return 0;

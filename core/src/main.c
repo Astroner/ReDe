@@ -9,14 +9,21 @@
 #include "RedeStd.h"
 
 int main(void) {
-    Rede_createStringSource(
-        code,
-        "log(length('hi!'))"
-    );
+    // Rede_createStringSource(
+    //     code,
+    //     "log(length('hi!'))"
+    // );
+
+    RedeSource code = {
+        .type = RedeSourceTypeFile,
+        .data = {
+            .path = "main.rede"
+        }
+    };
 
     Rede_createCompilationMemory(memory, 100, 256);
 
-    int status = Rede_compile(code, memory);
+    int status = Rede_compile(&code, memory);
 
     printf("\nCode:\n");
     for(size_t i = 0; i < 100; i++) {

@@ -33,6 +33,17 @@
 
     #define LOGS_ONLY(code) code
 
+    #define CHECK_ELSE(condition, elseCode, ...)\
+        do {\
+            int CONDITION_VALUE = (condition);\
+            if(CONDITION_VALUE < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, CONDITION_VALUE);\
+                printf(__VA_ARGS__);\
+                printf("\n");\
+                elseCode;\
+            }\
+        } while(0);
+
 #else
     #define LOGS_SCOPE(name)
     #define LOG(...)
@@ -45,6 +56,14 @@
         } while(0);\
 
     #define LOGS_ONLY(code)
+
+    #define CHECK_ELSE(condition, elseCode, ...)\
+        do {\
+            int CONDITION_VALUE = (condition);\
+            if(CONDITION_VALUE < 0) {\
+                elseCode;\
+            }\
+        } while(0);
 
 #endif // REDE_DO_LOGS
 

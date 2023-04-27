@@ -3,7 +3,7 @@
 
 #define TEST(function)\
     function();\
-    printf("%s - PASS", #function);\
+    printf("%s - PASS\n", #function);\
 
 
 #endif // TESTING_H

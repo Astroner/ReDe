@@ -9,34 +9,55 @@
 int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator) {
     iterator->index = -1;
     iterator->finished = 0;
+    iterator->current = 0;
     switch(src->type) {
         case RedeSourceTypeString:
             iterator->type = RedeSourceIteratorTypeString;
             iterator->data.string = src->data.string;
             break;
 
-        case RedeSourceTypeFile:
-            fprintf(stderr, "File source is not implemented\n");
-            exit(1);
+        case RedeSourceTypeFile: {
+            FILE* fp = fopen(src->data.path, "r");
+            if(!fp) return -1;
+            iterator->type = RedeSourceIteratorTypeFile;
+            iterator->data.file.fp = fp;
             break;
+        }
     }
 
     return 0;
 }
 
+void RedeSourceIterator_destroy(RedeSourceIterator* iterator) {
+    if(iterator->type == RedeSourceIteratorTypeFile) {
+        fclose(iterator->data.file.fp);
+    }
+}
+
 char RedeSourceIterator_nextChar(RedeSourceIterator* iterator) {
     if(iterator->finished) return '\0';
     iterator->index++;
-    switch(iterator->type) {
+    switch(iterator->type) 
         case RedeSourceIteratorTypeString: {
-            char ch = iterator->data.string[iterator->index];
-            if(!ch) iterator->finished = 1;
-            return ch;
-        }
+            iterator->current = iterator->data.string[iterator->index];
+            if(!iterator->current) iterator->finished = 1;
+
+            break;
+
+        case RedeSourceIteratorTypeFile:
+            iterator->current = getc(iterator->data.file.fp);
+            if(iterator->current == EOF) {
+                iterator->finished = 1;
+                iterator->current = '\0';
+            }
+            
+            break;
+
         default:
-            fprintf(stderr, "File source is not implemented\n");
+            fprintf(stderr, "Unknown iterator type\n");
             exit(1);
     }
+    return iterator->current;
 }
 
 char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
@@ -44,19 +65,21 @@ char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
         case RedeSourceIteratorTypeString: 
             return iterator->data.string[index];
 
+        case RedeSourceIteratorTypeFile: {
+            size_t diff = iterator->index - index;
+            fseek(iterator->data.file.fp, -diff - 1, SEEK_CUR);
+            char ch = getc(iterator->data.file.fp);
+            fseek(iterator->data.file.fp, diff, SEEK_CUR);
+            
+            return ch;
+        }
+
         default:
-            fprintf(stderr, "File source is not implemented\n");
+            fprintf(stderr, "Unknown iterator type\n");
             exit(1);
     }
 }
 
 char RedeSourceIterator_current(RedeSourceIterator* iterator) {
-    switch(iterator->type) {
-        case RedeSourceIteratorTypeString:
-            return iterator->data.string[iterator->index];
-            
-        default:
-            fprintf(stderr, "File source is not implemented\n");
-            exit(1);
-    }
+    return iterator->current;
 }

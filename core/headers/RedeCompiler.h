@@ -46,6 +46,14 @@ typedef struct RedeCompilationMemory {
     };\
     RedeSource* name = &name##__data;
 
+#define Rede_createFileSource(name, pathToFile)\
+    RedeSource name##__data = {\
+        .type = RedeSourceTypeFile,\
+        .data = {\
+            .path = pathToFile\
+        }\
+    };\
+    RedeSource* name = &name##__data;
 
 
 #define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\

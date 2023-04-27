@@ -472,10 +472,13 @@ static int writeAssignment(
 
 
 
-
+#define EXIT_COMPILER(code)\
+    compilationStatus = code;\
+    goto exit_compiler;\
 
 int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
     LOGS_SCOPE(Rede_compile);
+    int compilationStatus = 0;
 
     RedeCompilationContext ctx = {
         .isAssignment = 0,
@@ -483,7 +486,10 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
     };
 
     RedeSourceIterator iterator;
-    RedeSourceIterator_init(src, &iterator);
+    if(RedeSourceIterator_init(src, &iterator) < 0) {
+        LOG_LN("Failed to create iterator");
+        return -1;
+    };
 
 
 
@@ -507,7 +513,8 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
         } else if(ch == '=') {
             if(tokenLength == 0) {
                 LOG_LN("Unexpected '=' literal");
-                return -1;
+
+                EXIT_COMPILER(-1);
             }
             LOG_LN("Assignment:");
             LOG("IDENTIFIER (s: %zu, l: %zu):", tokenStart, tokenLength);
@@ -519,35 +526,55 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
                 printf("\n");
             )
 
-            CHECK(writeAssignment(tokenStart, tokenLength, &iterator, memory, &ctx), -10, "Failed to write an assignment");
+            CHECK_ELSE(
+                writeAssignment(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                EXIT_COMPILER(CONDITION_VALUE - 10), 
+                "Failed to write an assignment"
+            );
 
             searchingForTokenStart = 1;
             tokenLength = 0;
         } else if(ch == '(') {
             if(tokenLength == 0) {
                 LOG_LN("Unexpected '(' literal");
-                return -1;
+
+                EXIT_COMPILER(-1);
             }
             LOG_LN("Function call:");
-            CHECK(writeFunctionCall(tokenStart, tokenLength, &iterator, memory, &ctx), -100, "Failed to write function call");
-            CHECK(writeByte(memory, REDE_CODE_STACK_CLEAR), 0, "Failed to write REDE_CODE_STACK_CLEAR")
+            CHECK_ELSE(
+                writeFunctionCall(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                EXIT_COMPILER(CONDITION_VALUE - 100), 
+                "Failed to write function call"
+            );
+            CHECK_ELSE(
+                writeByte(memory, REDE_CODE_STACK_CLEAR), 
+                EXIT_COMPILER(CONDITION_VALUE), 
+                "Failed to write REDE_CODE_STACK_CLEAR"
+            )
 
             searchingForTokenStart = 1;
             tokenLength = 0;
         } else {
             LOG("Unexpected token");
 
-            return -1;
+            EXIT_COMPILER(-1);
         }
     }
 
     if(tokenLength > 0) {
         LOG_LN("Unexpected end of the string");
     
-        return -1;
-    } else {
-        CHECK(writeByte(memory, REDE_CODE_END), 0, "Failed to write REDE_CODE_END");
-
-        return 0;
+        EXIT_COMPILER(-1);
     }
+
+    CHECK_ELSE(
+        writeByte(memory, REDE_CODE_END), 
+        EXIT_COMPILER(CONDITION_VALUE), 
+        "Failed to write REDE_CODE_END"
+    );
+
+
+exit_compiler:
+    RedeSourceIterator_destroy(&iterator);
+    return compilationStatus;
 }

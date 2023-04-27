@@ -46,6 +46,14 @@ typedef struct RedeCompilationMemory {
     };\
     RedeSource* name = &name##__data;
 
+#define Rede_createFileSource(name, pathToFile)\
+    RedeSource name##__data = {\
+        .type = RedeSourceTypeFile,\
+        .data = {\
+            .path = pathToFile\
+        }\
+    };\
+    RedeSource* name = &name##__data;
 
 
 #define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\
@@ -70,23 +78,32 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory);
 #endif // REDE_COMPILER_H
 
 #if defined(REDE_COMPILER_IMPLEMENTATION)
+#include <stdio.h>
+
 #if !defined(REDE_SOURCE_ITERATOR)
 #define REDE_SOURCE_ITERATOR
 
 typedef enum RedeSourceIteratorType {
-    RedeSourceIteratorTypeString
+    RedeSourceIteratorTypeString,
+    RedeSourceIteratorTypeFile
 } RedeSourceIteratorType;
 
 typedef struct RedeSourceIterator {
     size_t index;
     int finished;
+    char current;
     RedeSourceIteratorType type;
     union {
         char* string;
+        struct {
+            FILE* fp;
+        } file;
     } data;
 } RedeSourceIterator;
 
 int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator);
+void RedeSourceIterator_destroy(RedeSourceIterator* iterator);
+
 char RedeSourceIterator_nextChar(RedeSourceIterator* iterator);
 char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index);
 char RedeSourceIterator_current(RedeSourceIterator* iterator);
@@ -103,34 +120,55 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator);
 int RedeSourceIterator_init(RedeSource* src, RedeSourceIterator* iterator) {
     iterator->index = -1;
     iterator->finished = 0;
+    iterator->current = 0;
     switch(src->type) {
         case RedeSourceTypeString:
             iterator->type = RedeSourceIteratorTypeString;
             iterator->data.string = src->data.string;
             break;
 
-        case RedeSourceTypeFile:
-            fprintf(stderr, "File source is not implemented\n");
-            exit(1);
+        case RedeSourceTypeFile: {
+            FILE* fp = fopen(src->data.path, "r");
+            if(!fp) return -1;
+            iterator->type = RedeSourceIteratorTypeFile;
+            iterator->data.file.fp = fp;
             break;
+        }
     }
 
     return 0;
 }
 
+void RedeSourceIterator_destroy(RedeSourceIterator* iterator) {
+    if(iterator->type == RedeSourceIteratorTypeFile) {
+        fclose(iterator->data.file.fp);
+    }
+}
+
 char RedeSourceIterator_nextChar(RedeSourceIterator* iterator) {
     if(iterator->finished) return '\0';
     iterator->index++;
-    switch(iterator->type) {
+    switch(iterator->type) 
         case RedeSourceIteratorTypeString: {
-            char ch = iterator->data.string[iterator->index];
-            if(!ch) iterator->finished = 1;
-            return ch;
-        }
+            iterator->current = iterator->data.string[iterator->index];
+            if(!iterator->current) iterator->finished = 1;
+
+            break;
+
+        case RedeSourceIteratorTypeFile:
+            iterator->current = getc(iterator->data.file.fp);
+            if(iterator->current == EOF) {
+                iterator->finished = 1;
+                iterator->current = '\0';
+            }
+            
+            break;
+
         default:
-            fprintf(stderr, "File source is not implemented\n");
+            fprintf(stderr, "Unknown iterator type\n");
             exit(1);
     }
+    return iterator->current;
 }
 
 char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
@@ -138,21 +176,23 @@ char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
         case RedeSourceIteratorTypeString: 
             return iterator->data.string[index];
 
+        case RedeSourceIteratorTypeFile: {
+            size_t diff = iterator->index - index;
+            fseek(iterator->data.file.fp, -diff - 1, SEEK_CUR);
+            char ch = getc(iterator->data.file.fp);
+            fseek(iterator->data.file.fp, diff, SEEK_CUR);
+            
+            return ch;
+        }
+
         default:
-            fprintf(stderr, "File source is not implemented\n");
+            fprintf(stderr, "Unknown iterator type\n");
             exit(1);
     }
 }
 
 char RedeSourceIterator_current(RedeSourceIterator* iterator) {
-    switch(iterator->type) {
-        case RedeSourceIteratorTypeString:
-            return iterator->data.string[iterator->index];
-            
-        default:
-            fprintf(stderr, "File source is not implemented\n");
-            exit(1);
-    }
+    return iterator->current;
 }
 
 #if !defined(LOGS_H)
@@ -190,6 +230,17 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
 
     #define LOGS_ONLY(code) code
 
+    #define CHECK_ELSE(condition, elseCode, ...)\
+        do {\
+            int CONDITION_VALUE = (condition);\
+            if(CONDITION_VALUE < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, CONDITION_VALUE);\
+                printf(__VA_ARGS__);\
+                printf("\n");\
+                elseCode;\
+            }\
+        } while(0);
+
 #else
     #define LOGS_SCOPE(name)
     #define LOG(...)
@@ -202,6 +253,14 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
         } while(0);\
 
     #define LOGS_ONLY(code)
+
+    #define CHECK_ELSE(condition, elseCode, ...)\
+        do {\
+            int CONDITION_VALUE = (condition);\
+            if(CONDITION_VALUE < 0) {\
+                elseCode;\
+            }\
+        } while(0);
 
 #endif // REDE_DO_LOGS
 
@@ -696,10 +755,13 @@ static int writeAssignment(
 
 
 
-
+#define EXIT_COMPILER(code)\
+    compilationStatus = code;\
+    goto exit_compiler;\
 
 int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
     LOGS_SCOPE(Rede_compile);
+    int compilationStatus = 0;
 
     RedeCompilationContext ctx = {
         .isAssignment = 0,
@@ -707,7 +769,10 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
     };
 
     RedeSourceIterator iterator;
-    RedeSourceIterator_init(src, &iterator);
+    if(RedeSourceIterator_init(src, &iterator) < 0) {
+        LOG_LN("Failed to create iterator");
+        return -1;
+    };
 
 
 
@@ -731,7 +796,8 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
         } else if(ch == '=') {
             if(tokenLength == 0) {
                 LOG_LN("Unexpected '=' literal");
-                return -1;
+
+                EXIT_COMPILER(-1);
             }
             LOG_LN("Assignment:");
             LOG("IDENTIFIER (s: %zu, l: %zu):", tokenStart, tokenLength);
@@ -743,36 +809,56 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
                 printf("\n");
             )
 
-            CHECK(writeAssignment(tokenStart, tokenLength, &iterator, memory, &ctx), -10, "Failed to write an assignment");
+            CHECK_ELSE(
+                writeAssignment(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                EXIT_COMPILER(CONDITION_VALUE - 10), 
+                "Failed to write an assignment"
+            );
 
             searchingForTokenStart = 1;
             tokenLength = 0;
         } else if(ch == '(') {
             if(tokenLength == 0) {
                 LOG_LN("Unexpected '(' literal");
-                return -1;
+
+                EXIT_COMPILER(-1);
             }
             LOG_LN("Function call:");
-            CHECK(writeFunctionCall(tokenStart, tokenLength, &iterator, memory, &ctx), -100, "Failed to write function call");
-            CHECK(writeByte(memory, REDE_CODE_STACK_CLEAR), 0, "Failed to write REDE_CODE_STACK_CLEAR")
+            CHECK_ELSE(
+                writeFunctionCall(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                EXIT_COMPILER(CONDITION_VALUE - 100), 
+                "Failed to write function call"
+            );
+            CHECK_ELSE(
+                writeByte(memory, REDE_CODE_STACK_CLEAR), 
+                EXIT_COMPILER(CONDITION_VALUE), 
+                "Failed to write REDE_CODE_STACK_CLEAR"
+            )
 
             searchingForTokenStart = 1;
             tokenLength = 0;
         } else {
             LOG("Unexpected token");
 
-            return -1;
+            EXIT_COMPILER(-1);
         }
     }
 
     if(tokenLength > 0) {
         LOG_LN("Unexpected end of the string");
     
-        return -1;
-    } else {
-        CHECK(writeByte(memory, REDE_CODE_END), 0, "Failed to write REDE_CODE_END");
-
-        return 0;
+        EXIT_COMPILER(-1);
     }
+
+    CHECK_ELSE(
+        writeByte(memory, REDE_CODE_END), 
+        EXIT_COMPILER(CONDITION_VALUE), 
+        "Failed to write REDE_CODE_END"
+    );
+
+
+exit_compiler:
+    RedeSourceIterator_destroy(&iterator);
+    return compilationStatus;
 }
 #endif // REDE_COMPILER_IMPLEMENTATION
