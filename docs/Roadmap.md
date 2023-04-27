@@ -18,3 +18,4 @@
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Improve error handling to provide more info about the problem
  - [ ] Implement the ability for CLI tool to compile into .c files
+ - [ ] Improve CLI tool to handle cursor movement from keyboard and e.t.c.
