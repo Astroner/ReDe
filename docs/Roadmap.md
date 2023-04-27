@@ -16,6 +16,9 @@
  - [ ] Implement if-statements on bytecode level
  - [ ] Implement if-statements on compiler level
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
+ - [ ] Design meta-information concept to provide useful information from compiler to runtime
+ - [ ] Implement meta-info on runtime level
+ - [ ] Implement meta-info on compiler level
  - [ ] Improve error handling to provide more info about the problem
  - [ ] Implement the ability for CLI tool to compile into .c files
  - [ ] Improve CLI tool to handle cursor movement from keyboard and e.t.c.
