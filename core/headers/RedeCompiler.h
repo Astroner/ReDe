@@ -18,25 +18,6 @@ typedef struct RedeSource {
     } data;
 } RedeSource;
 
-typedef struct RedeVariableName {
-    int isBusy;
-    unsigned char index;
-    size_t start;
-    size_t length;
-} RedeVariableName;
-
-typedef struct RedeCompilationMemory {
-    unsigned char* buffer;
-    size_t bufferLength;
-    size_t bufferActualLength;
-    struct {
-        unsigned char nextIndex;
-        RedeVariableName* buffer;
-        size_t bufferSize;
-    } variables;
-} RedeCompilationMemory;
-
-
 #define Rede_createStringSource(name, code)\
     RedeSource name##__data = {\
         .type = RedeSourceTypeString,\
@@ -56,15 +37,58 @@ typedef struct RedeCompilationMemory {
     RedeSource* name = &name##__data;
 
 
-#define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\
-    unsigned char name##__buffer[programBufferSize];\
+
+typedef enum RedeDestType {
+    RedeDestTypeBuffer
+} RedeDestType;
+
+typedef struct RedeDest {
+    RedeDestType type;
+    union {
+        struct {
+            unsigned char* buffer;
+            size_t length;
+            size_t maxLength;
+        } buffer;
+    } data;
+} RedeDest;
+
+#define Rede_createBufferDest(name, bufferLength)\
+    unsigned char name##__buffer[bufferLength];\
     memset(name##__buffer, 0, sizeof(name##__buffer));\
+    RedeDest name##__data = {\
+        .type = RedeDestTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = name##__buffer,\
+                .length = 0,\
+                .maxLength = bufferLength,\
+            }\
+        }\
+    };\
+    RedeDest* name = &name##__data;\
+
+
+
+typedef struct RedeVariableName {
+    int isBusy;
+    unsigned char index;
+    size_t start;
+    size_t length;
+} RedeVariableName;
+
+typedef struct RedeCompilationMemory {
+    struct {
+        unsigned char nextIndex;
+        RedeVariableName* buffer;
+        size_t bufferSize;
+    } variables;
+} RedeCompilationMemory;
+
+#define Rede_createCompilationMemory(name, variablesBufferSize)\
     RedeVariableName name##__names[256];\
     memset(name##__names, 0, sizeof(name##__names));\
     RedeCompilationMemory name##__data = {\
-        .buffer = name##__buffer,\
-        .bufferLength = programBufferSize,\
-        .bufferActualLength = 0,\
         .variables = {\
             .buffer = name##__names,\
             .bufferSize = variablesBufferSize,\
@@ -73,6 +97,7 @@ typedef struct RedeCompilationMemory {
     };\
     RedeCompilationMemory* name = &name##__data;
 
-int Rede_compile(RedeSource* src, RedeCompilationMemory* memory);
+
+int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dist);
 
 #endif // REDE_COMPILER_H

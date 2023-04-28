@@ -23,12 +23,14 @@ void compilesAssignment() {
         "b = 'hi!'"
     );
 
-    Rede_createCompilationMemory(memory, 256, 100);
+    Rede_createCompilationMemory(memory, 100);
 
-    assert(Rede_compile(src, memory) == 0);
+    Rede_createBufferDest(dest, 256);
+
+    assert(Rede_compile(src, memory, dest) == 0);
 
     MATCH(
-        memory->buffer,
+        dest->data.buffer.buffer,
         REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
         REDE_CODE_END
@@ -42,12 +44,14 @@ void compilesFunctionCalls() {
         "log( a   2  )"
     );
 
-    Rede_createCompilationMemory(memory, 256, 100);
+    Rede_createCompilationMemory(memory, 100);
 
-    assert(Rede_compile(src, memory) == 0);
+    Rede_createBufferDest(dest, 256);
+
+    assert(Rede_compile(src, memory, dest) == 0);
 
     MATCH(
-        memory->buffer,
+        dest->data.buffer.buffer,
         REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
         REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
         REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
@@ -65,12 +69,14 @@ void compilesFunctionCallsInsideOfFunctionCalls() {
         "log(sum(2   2)   length('kekW'))"
     );
 
-    Rede_createCompilationMemory(memory, 256, 100);
+    Rede_createCompilationMemory(memory, 100);
 
-    assert(Rede_compile(src, memory) == 0);
+    Rede_createBufferDest(dest, 256);
+
+    assert(Rede_compile(src, memory, dest) == 0);
 
     MATCH(
-        memory->buffer,
+        dest->data.buffer.buffer,
         REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_CALL, 3, 's', 'u', 'm', 2,
@@ -85,12 +91,14 @@ void compilesFunctionCallsInsideOfFunctionCalls() {
 void compilesFromFileSource() {
     Rede_createFileSource(src, "./tests/test-code.txt");
 
-    Rede_createCompilationMemory(memory, 256, 100);
+    Rede_createCompilationMemory(memory, 100);
 
-    assert(Rede_compile(src, memory) == 0);
+    Rede_createBufferDest(dest, 256);
+
+    assert(Rede_compile(src, memory, dest) == 0);
 
     MATCH(
-        memory->buffer,
+        dest->data.buffer.buffer,
         REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
         REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,

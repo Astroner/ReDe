@@ -20,8 +20,7 @@ COMPILER_LIB_NAME=RedeCompiler.h
 STD_LIB_NAME=RedeSTD.h
 GENERAL_LIB_NAME=Rede.h
 
-
-.PHONY: core
+.PHONY: cli
 cli: $(CLI_EXECUTABLE)
 	$(CLI_EXECUTABLE) $(EFLAGS)
 
@@ -35,6 +34,7 @@ $(CLI_OBJECTS): %.o: %.c $(GENERAL_LIB_NAME)
 	$(CC) $(CFLAGS) -c -o $@ -I$(CLI_HEADERS) -I./ -Wall -Wextra -std=c99 -pedantic $<
 
 
+
 .PHONY: core
 core: $(CORE_EXECUTABLE)
 	$(CORE_EXECUTABLE) $(EFLAGS)
@@ -44,6 +44,7 @@ $(CORE_EXECUTABLE): $(CORE_OBJECTS)
 
 $(CORE_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ -I$(CORE_HEADERS) -Wall -Wextra -std=c99 -pedantic $<
+
 
 
 # Builds runtime STB-like lib
@@ -59,7 +60,14 @@ $(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h core/headers/RedeByteCodes.h cor
 
 
 # Builds compiler STB-like lib
-$(COMPILER_LIB_NAME): core/headers/RedeCompiler.h core/headers/RedeSourceIterator.h core/headers/logs.h core/headers/RedeByteCodes.h core/src/RedeCompiler.c core/src/RedeSourceIterator.c
+$(COMPILER_LIB_NAME):\
+		core/headers/RedeCompiler.h \
+		core/headers/RedeSourceIterator.h \
+		core/headers/logs.h \
+		core/headers/RedeByteCodes.h \
+		core/src/RedeCompiler.c \
+		core/src/RedeSourceIterator.c \
+		core/src/RedeDest.c
 	cat core/headers/RedeCompiler.h > $(COMPILER_LIB_NAME)
 	echo "\n#if defined(REDE_COMPILER_IMPLEMENTATION)" >> $(COMPILER_LIB_NAME)
 	cat core/headers/RedeSourceIterator.h >> $(COMPILER_LIB_NAME)
@@ -70,7 +78,9 @@ $(COMPILER_LIB_NAME): core/headers/RedeCompiler.h core/headers/RedeSourceIterato
 	echo "\n" >> $(COMPILER_LIB_NAME)
 	cat core/headers/RedeByteCodes.h >> $(COMPILER_LIB_NAME)
 	echo "\n" >> $(COMPILER_LIB_NAME)
-	tail -n +5 core/src/RedeCompiler.c >> $(COMPILER_LIB_NAME)
+	tail -n +3 core/src/RedeDest.c >> $(COMPILER_LIB_NAME)
+	echo "\n" >> $(COMPILER_LIB_NAME)
+	tail -n +6 core/src/RedeCompiler.c >> $(COMPILER_LIB_NAME)
 	echo "\n#endif // REDE_COMPILER_IMPLEMENTATION" >> $(COMPILER_LIB_NAME)
 
 

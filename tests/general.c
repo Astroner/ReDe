@@ -13,11 +13,13 @@ void works() {
         "log(a b c) "
     );
 
-    Rede_createCompilationMemory(cm, 200, 3);
+    Rede_createCompilationMemory(cm, 3);
 
-    assert(Rede_compile(c, cm) == 0);
+    Rede_createBufferDest(dest, 200);
 
-    Rede_createByteCodeFromBuffer(bc, cm->buffer);
+    assert(Rede_compile(c, cm, dest) == 0);
+
+    Rede_createByteCodeFromBuffer(bc, dest->data.buffer.buffer);
 
     Rede_createRuntimeMemory(rm, 4, 3, 100);
 

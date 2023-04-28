@@ -34,10 +34,11 @@ void realtime() {
     memset(buffer, 0, MAX_LINE_WIDTH);
 
     Rede_createStringSource(code, buffer);
-    Rede_createCompilationMemory(compilation, 200, 256);
+    Rede_createCompilationMemory(compilation, 256);
+    Rede_createBufferDest(dest, 200);
 
     Rede_createRuntimeMemory(runtime, 100, 256, 1024);
-    Rede_createByteCodeFromBuffer(bytes, compilation->buffer);
+    Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
 
     RealtimeData data = {
         .quit = 0,
@@ -71,7 +72,7 @@ void realtime() {
 
             if(inputLength == MAX_LINE_WIDTH - 1) break;
         }
-        int status = Rede_compile(code, compilation);
+        int status = Rede_compile(code, compilation, dest);
 
         if(status < 0) {
             printf("Failed to compile\n");
@@ -86,6 +87,6 @@ void realtime() {
     
 loop_end:
         memset(buffer, 0, MAX_LINE_WIDTH);
-        compilation->bufferActualLength = 0;
+        dest->data.buffer.length = 0;
     }
 }

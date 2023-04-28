@@ -18,25 +18,6 @@ typedef struct RedeSource {
     } data;
 } RedeSource;
 
-typedef struct RedeVariableName {
-    int isBusy;
-    unsigned char index;
-    size_t start;
-    size_t length;
-} RedeVariableName;
-
-typedef struct RedeCompilationMemory {
-    unsigned char* buffer;
-    size_t bufferLength;
-    size_t bufferActualLength;
-    struct {
-        unsigned char nextIndex;
-        RedeVariableName* buffer;
-        size_t bufferSize;
-    } variables;
-} RedeCompilationMemory;
-
-
 #define Rede_createStringSource(name, code)\
     RedeSource name##__data = {\
         .type = RedeSourceTypeString,\
@@ -56,15 +37,58 @@ typedef struct RedeCompilationMemory {
     RedeSource* name = &name##__data;
 
 
-#define Rede_createCompilationMemory(name, programBufferSize, variablesBufferSize)\
-    unsigned char name##__buffer[programBufferSize];\
+
+typedef enum RedeDestType {
+    RedeDestTypeBuffer
+} RedeDestType;
+
+typedef struct RedeDest {
+    RedeDestType type;
+    union {
+        struct {
+            unsigned char* buffer;
+            size_t length;
+            size_t maxLength;
+        } buffer;
+    } data;
+} RedeDest;
+
+#define Rede_createBufferDest(name, bufferLength)\
+    unsigned char name##__buffer[bufferLength];\
     memset(name##__buffer, 0, sizeof(name##__buffer));\
+    RedeDest name##__data = {\
+        .type = RedeDestTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = name##__buffer,\
+                .length = 0,\
+                .maxLength = bufferLength,\
+            }\
+        }\
+    };\
+    RedeDest* name = &name##__data;\
+
+
+
+typedef struct RedeVariableName {
+    int isBusy;
+    unsigned char index;
+    size_t start;
+    size_t length;
+} RedeVariableName;
+
+typedef struct RedeCompilationMemory {
+    struct {
+        unsigned char nextIndex;
+        RedeVariableName* buffer;
+        size_t bufferSize;
+    } variables;
+} RedeCompilationMemory;
+
+#define Rede_createCompilationMemory(name, variablesBufferSize)\
     RedeVariableName name##__names[256];\
     memset(name##__names, 0, sizeof(name##__names));\
     RedeCompilationMemory name##__data = {\
-        .buffer = name##__buffer,\
-        .bufferLength = programBufferSize,\
-        .bufferActualLength = 0,\
         .variables = {\
             .buffer = name##__names,\
             .bufferSize = variablesBufferSize,\
@@ -73,7 +97,8 @@ typedef struct RedeCompilationMemory {
     };\
     RedeCompilationMemory* name = &name##__data;
 
-int Rede_compile(RedeSource* src, RedeCompilationMemory* memory);
+
+int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dist);
 
 #endif // REDE_COMPILER_H
 
@@ -287,6 +312,57 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
 
 
 
+int RedeDest_init(RedeDest* dest) {
+    LOGS_SCOPE(RedeDest_init);
+    if(dest->type != RedeDestTypeBuffer) {
+        LOG_LN("Unknown destination type");
+        return -1;
+    }
+    return 0;
+}
+
+int RedeDest_destroy(RedeDest* dest) {
+    LOGS_SCOPE(RedeDest_destroy);
+    if(dest->type != RedeDestTypeBuffer) {
+        LOG_LN("Unknown destination type");
+        return -1;
+    }
+    return 0;
+}
+
+int RedeDest_writeByte(RedeDest* dest, unsigned char byte) {
+
+    switch(dest->type) {
+        case RedeDestTypeBuffer:
+            if(dest->data.buffer.length != dest->data.buffer.maxLength) {
+                dest->data.buffer.buffer[dest->data.buffer.length] = byte;
+                dest->data.buffer.length++;
+                return 0;
+            } else {
+                return -1;
+            }
+        default:
+            return -1;
+    }
+}
+
+void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
+
+    switch(dest->type) {
+        case RedeDestTypeBuffer:
+            if(dest->data.buffer.length >= n) {
+                dest->data.buffer.length -= n;
+            } else {
+                dest->data.buffer.length = 0;
+            }
+            return;
+        default:
+            return;
+    }
+}
+
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,7 +375,7 @@ typedef struct RedeCompilationContext {
 } RedeCompilationContext;
 
 
-static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeCompilationContext* ctx);
+static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
 static unsigned long hash(
     RedeSourceIterator* iterator, 
@@ -318,14 +394,6 @@ static unsigned long hash(
     return hash;
 }
 
-static int writeByte(RedeCompilationMemory* memory, unsigned char byte) {
-    if(memory->bufferActualLength >= memory->bufferLength) return -1;
-
-    memory->buffer[memory->bufferActualLength] = byte;
-    memory->bufferActualLength++;
-
-    return 0;
-}
 
 static size_t pow10L(size_t power) {
     size_t result = 1;
@@ -342,7 +410,12 @@ static size_t pow10L(size_t power) {
 
 
 
-static int writeFloat(char firstChar, RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeCompilationContext* ctx) {
+static int writeFloat(
+    char firstChar, 
+    RedeSourceIterator* iterator,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
     LOGS_SCOPE(writeFloat);
 
     int isNegative = firstChar == '-';
@@ -386,7 +459,7 @@ static int writeFloat(char firstChar, RedeSourceIterator* iterator, RedeCompilat
 
     LOG_LN("Result: %f", result);
 
-    CHECK(writeByte(memory, REDE_TYPE_NUMBER), 0, "Failed to write REDE_TYPE_NUMBER");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_NUMBER), 0, "Failed to write REDE_TYPE_NUMBER");
 
 
     LOG_LN("Serializing");
@@ -394,7 +467,7 @@ static int writeFloat(char firstChar, RedeSourceIterator* iterator, RedeCompilat
     char* bytes = (char*)&result;
 
     for(size_t i = 0; i < sizeof(float); i++) {
-        CHECK(writeByte(memory, bytes[i]), 0, "Failed to write float byte with index %zu", i);
+        CHECK(RedeDest_writeByte(dest, bytes[i]), 0, "Failed to write float byte with index %zu", i);
     }
 
     return 0;
@@ -405,7 +478,12 @@ static int writeFloat(char firstChar, RedeSourceIterator* iterator, RedeCompilat
 
 
 
-static int writeString(int singleQuoted, RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeCompilationContext* ctx) {
+static int writeString(
+    int singleQuoted, 
+    RedeSourceIterator* iterator,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
     LOGS_SCOPE(writeString);
 
     LOG_LN(singleQuoted ? "Single quoted" : "Double quoted");
@@ -470,9 +548,9 @@ static int writeString(int singleQuoted, RedeSourceIterator* iterator, RedeCompi
         return -3;
     }
 
-    CHECK(writeByte(memory, REDE_TYPE_STRING), 0, "Failed to write REDE_TYPE_STRING");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_STRING), 0, "Failed to write REDE_TYPE_STRING");
 
-    CHECK(writeByte(memory, (unsigned char)pureStringLength), 0, "Failed to write string length");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)pureStringLength), 0, "Failed to write string length");
 
     LOG_LN("Writing to the buffer");
     for(size_t i = stringStart; i < stringStart + iteratedChars; i++) {
@@ -480,7 +558,7 @@ static int writeString(int singleQuoted, RedeSourceIterator* iterator, RedeCompi
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
         if(ch != '\\') {
-            CHECK(writeByte(memory, (unsigned char)ch), 0, "Failed to write char");
+            CHECK(RedeDest_writeByte(dest, (unsigned char)ch), 0, "Failed to write char");
         } 
         LOGS_ONLY(
             else {
@@ -500,7 +578,8 @@ static int writeVariableValue(
     size_t identifierStart, 
     size_t identifierLength, 
     RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory
+    RedeCompilationMemory* memory,
+    RedeDest* dest
 ) {
     LOGS_SCOPE(writeVariableValue);
 
@@ -526,9 +605,9 @@ static int writeVariableValue(
 
     LOG_LN("Variable index: %d", name->index);
 
-    CHECK(writeByte(memory, REDE_TYPE_VAR), 0, "Failed to write REDE_TYPE_VAR");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_VAR), 0, "Failed to write REDE_TYPE_VAR");
 
-    CHECK(writeByte(memory, name->index), 0, "Failed to write variable index");
+    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index");
 
     return 0;
 }
@@ -542,6 +621,7 @@ static int writeFunctionCall(
     size_t identifierStart, size_t identifierLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
+    RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
     LOGS_SCOPE(writeFunctionCall);
@@ -549,10 +629,10 @@ static int writeFunctionCall(
 
     if(ctx->isAssignment && ctx->functionCallDepth == 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of assignment");
-        memory->bufferActualLength -= 2;
+        RedeDest_moveCursorBack(dest, 2);
     } else if(ctx->functionCallDepth > 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of function call");
-        memory->bufferActualLength -= 1;
+        RedeDest_moveCursorBack(dest, 1);
     }
 
     LOG_LN("Current function call depth: %d", ctx->functionCallDepth);
@@ -567,8 +647,8 @@ static int writeFunctionCall(
     
     size_t argc = 0;
     while(1) {
-        CHECK(writeByte(memory, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
-        int status = writeExpression(iterator, memory, ctx);
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
+        int status = writeExpression(iterator, memory, dest, ctx);
         CHECK(status, -10, "Failed to write parameter with index %zu", argc - 1);
 
         if(status == 3) {
@@ -603,15 +683,15 @@ static int writeFunctionCall(
         return -1;
     }
 
-    CHECK(writeByte(memory, REDE_CODE_CALL), 0, "Failed to write REDE_CODE_CALL");
-    CHECK(writeByte(memory, (unsigned char)identifierLength), 0, "Failed to write identifier length");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_CALL), 0, "Failed to write REDE_CODE_CALL");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)identifierLength), 0, "Failed to write identifier length");
 
     LOG_LN("Writing identifier: ");
     for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
         char ch = RedeSourceIterator_charAt(iterator, i);
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
-        CHECK(writeByte(memory, ch), 0, "Failed to write");
+        CHECK(RedeDest_writeByte(dest, ch), 0, "Failed to write");
     }
 
     if(argc > 255) {
@@ -619,7 +699,7 @@ static int writeFunctionCall(
         return -1;
     }
 
-    CHECK(writeByte(memory, (unsigned char)argc), 0, "Failed to write arguments count");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)argc), 0, "Failed to write arguments count");
 
     ctx->functionCallDepth--;
 
@@ -630,7 +710,12 @@ static int writeFunctionCall(
 
 
 
-static int writeFuncCOrVar(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeCompilationContext* ctx) {
+static int writeFuncCOrVar(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
     LOGS_SCOPE(writeFuncCOrVar);
 
     size_t identifierStart = iterator->index;
@@ -642,11 +727,11 @@ static int writeFuncCOrVar(RedeSourceIterator* iterator, RedeCompilationMemory* 
 
         if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
             LOG_LN("Variable value. ctx.functionCallDepth = %d", ctx->functionCallDepth);
-            CHECK(writeVariableValue(identifierStart, identifierLength, iterator, memory), -10, "Failed to write variable value");
+            CHECK(writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
             return 0;
         } else if(ch == '(') {
             LOG_LN("Function call");
-            CHECK(writeFunctionCall(identifierStart, identifierLength, iterator, memory, ctx), -20, "Failed to write function call");
+            CHECK(writeFunctionCall(identifierStart, identifierLength, iterator, memory, dest, ctx), -20, "Failed to write function call");
             return 1;
         } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             identifierLength++;
@@ -664,7 +749,12 @@ static int writeFuncCOrVar(RedeSourceIterator* iterator, RedeCompilationMemory* 
 
 
 
-static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeCompilationContext* ctx) {
+static int writeExpression(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
     LOGS_SCOPE(writeExpression);
 
     char ch;
@@ -673,15 +763,15 @@ static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* 
         
         if((ch >= '0' && ch <= '9') || ch == '-') {
             LOG_LN("Number assignment");
-            CHECK(writeFloat(ch, iterator, memory, ctx), -10, "Failed to write a float");
+            CHECK(writeFloat(ch, iterator, dest, ctx), -10, "Failed to write a float");
             return 0;
         } else if(ch == '"' || ch == '\'') {
             LOG_LN("String assignment");
-            CHECK(writeString(ch == '\'', iterator, memory, ctx), -20, "Failed to write a string");
+            CHECK(writeString(ch == '\'', iterator, dest, ctx), -20, "Failed to write a string");
             return 0;
         } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             LOG_LN("Variable assignment or function call");
-            int status = writeFuncCOrVar(iterator, memory, ctx);
+            int status = writeFuncCOrVar(iterator, memory, dest, ctx);
             CHECK(status, -30, "Failed to write function call or variable value");
             return status;
         } else if(ch == ' ' || ch == '\n' || ch == '\r') {
@@ -689,7 +779,7 @@ static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* 
         } else if(ctx->functionCallDepth > 0 && ch == ')') {
             LOG_LN("GOT ')' during function arguments parsing, which means the end of the function call");
             LOG_LN("Moving cursor back by 1");
-            memory->bufferActualLength--;
+            RedeDest_moveCursorBack(dest, 1);
             
             return 3;
         } else {
@@ -711,12 +801,13 @@ static int writeAssignment(
     size_t tokenLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory,
+    RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
     LOGS_SCOPE(writeAssignment);
     ctx->isAssignment = 1;
 
-    CHECK(writeByte(memory, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
 
     unsigned long arrayIndex = hash(iterator, tokenStart, tokenLength) % memory->variables.bufferSize;
     LOG_LN("VARIABLE_HASH_TABLE_INDEX: %zu", arrayIndex);
@@ -736,16 +827,16 @@ static int writeAssignment(
         }
     )
 
-    CHECK(writeByte(memory, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
+    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
 
-    int status = writeExpression(iterator, memory, ctx);
+    int status = writeExpression(iterator, memory, dest, ctx);
 
     CHECK(status, -10, "Failed to write expression");
 
     if(status == 1) {
-        CHECK(writeByte(memory, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
-        CHECK(writeByte(memory, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
-        CHECK(writeByte(memory, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
+        CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
     }
 
     ctx->isAssignment = 0;
@@ -759,7 +850,7 @@ static int writeAssignment(
     compilationStatus = code;\
     goto exit_compiler;\
 
-int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
+int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest) {
     LOGS_SCOPE(Rede_compile);
     int compilationStatus = 0;
 
@@ -774,6 +865,10 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
         return -1;
     };
 
+    if(RedeDest_init(dest) < 0) {
+        LOG_LN("Failed to init destination");
+        EXIT_COMPILER(-1);
+    }
 
 
 
@@ -810,7 +905,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
             )
 
             CHECK_ELSE(
-                writeAssignment(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                writeAssignment(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
                 EXIT_COMPILER(CONDITION_VALUE - 10), 
                 "Failed to write an assignment"
             );
@@ -825,12 +920,12 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
             }
             LOG_LN("Function call:");
             CHECK_ELSE(
-                writeFunctionCall(tokenStart, tokenLength, &iterator, memory, &ctx), 
+                writeFunctionCall(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
                 EXIT_COMPILER(CONDITION_VALUE - 100), 
                 "Failed to write function call"
             );
             CHECK_ELSE(
-                writeByte(memory, REDE_CODE_STACK_CLEAR), 
+                RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), 
                 EXIT_COMPILER(CONDITION_VALUE), 
                 "Failed to write REDE_CODE_STACK_CLEAR"
             )
@@ -851,7 +946,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
     }
 
     CHECK_ELSE(
-        writeByte(memory, REDE_CODE_END), 
+        RedeDest_writeByte(dest, REDE_CODE_END), 
         EXIT_COMPILER(CONDITION_VALUE), 
         "Failed to write REDE_CODE_END"
     );
@@ -859,6 +954,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory) {
 
 exit_compiler:
     RedeSourceIterator_destroy(&iterator);
+    RedeDest_destroy(dest);
     return compilationStatus;
 }
 #endif // REDE_COMPILER_IMPLEMENTATION

@@ -14,20 +14,17 @@ int main(void) {
     //     "log(length('hi!'))"
     // );
 
-    RedeSource code = {
-        .type = RedeSourceTypeFile,
-        .data = {
-            .path = "main.rede"
-        }
-    };
+    Rede_createFileSource(code, "main.rede");
 
-    Rede_createCompilationMemory(memory, 100, 256);
+    Rede_createCompilationMemory(memory, 256);
 
-    int status = Rede_compile(&code, memory);
+    Rede_createBufferDest(dest, 100);
+
+    int status = Rede_compile(code, memory, dest);
 
     printf("\nCode:\n");
     for(size_t i = 0; i < 100; i++) {
-        printf("%d ", memory->buffer[i]);
+        printf("%d ", dest->data.buffer.buffer[i]);
         if(i % 32 == 0 && i != 0) {
             printf("\n");
         }
@@ -38,7 +35,7 @@ int main(void) {
 
     printf("Executing the code...\n");
 
-    Rede_createByteCodeFromBuffer(bytes, memory->buffer);
+    Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
 
     Rede_createRuntimeMemory(runtimeMemory, 256, 256, 256);
 
