@@ -9,8 +9,8 @@
      - Root file -  *cli/src/main.c*
      - Build executable - ```make build-cli```
  - [x] Implement the ability to compile bytecode from file source - **Rede_createFileSource()** macro
- - [x] Implement **RedeDest** structure to separate compilation into buffer and into file
- - [ ] Implement the ability to compile into .rd file
+ - [x] Implement **RedeDest** structure to separate compilation into buffer and into file - **Rede_createBufferDest** macro
+ - [x] Implement the ability to compile into .rd file - **Rede_createFileDest** macro
  - [ ] Implement the ability to execute bytecode from .rd files
  - [ ] Improve CLI tool to use new file features
  - [ ] Implement if-statements on bytecode level

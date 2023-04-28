@@ -4,7 +4,7 @@
 #define REDE_DEST_H
 
 int RedeDest_init(RedeDest* dest);
-int RedeDest_destroy(RedeDest* dest);
+void RedeDest_destroy(RedeDest* dest);
 int RedeDest_writeByte(RedeDest* dest, unsigned char byte);
 void RedeDest_moveCursorBack(RedeDest* dest, size_t n);
 

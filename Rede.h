@@ -483,7 +483,8 @@ typedef struct RedeSource {
 
 
 typedef enum RedeDestType {
-    RedeDestTypeBuffer
+    RedeDestTypeBuffer,
+    RedeDestTypeFile
 } RedeDestType;
 
 typedef struct RedeDest {
@@ -494,6 +495,10 @@ typedef struct RedeDest {
             size_t length;
             size_t maxLength;
         } buffer;
+        struct {
+            char* path;
+            FILE* fp;
+        } file;
     } data;
 } RedeDest;
 
@@ -507,6 +512,18 @@ typedef struct RedeDest {
                 .buffer = name##__buffer,\
                 .length = 0,\
                 .maxLength = bufferLength,\
+            }\
+        }\
+    };\
+    RedeDest* name = &name##__data;\
+
+
+#define Rede_createFileDest(name, filePath)\
+    RedeDest name##__data = {\
+        .type = RedeDestTypeFile,\
+        .data = {\
+            .file = {\
+                .path = filePath,\
             }\
         }\
     };\
@@ -758,20 +775,31 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
 
 int RedeDest_init(RedeDest* dest) {
     LOGS_SCOPE(RedeDest_init);
-    if(dest->type != RedeDestTypeBuffer) {
-        LOG_LN("Unknown destination type");
-        return -1;
+    switch(dest->type) {
+        case RedeDestTypeFile: {
+            dest->data.file.fp = fopen(dest->data.file.path, "wb");
+            if(!dest->data.file.fp) {
+                LOG_LN("Failed to open file '%s'", dest->data.file.path);
+                return -1;
+            }
+            return 0;
+        }
+
+        case RedeDestTypeBuffer:
+            return 0;
+
+        default:
+            LOG_LN("Unknown destination type");
+            return -1;
     }
     return 0;
 }
 
-int RedeDest_destroy(RedeDest* dest) {
+void RedeDest_destroy(RedeDest* dest) {
     LOGS_SCOPE(RedeDest_destroy);
-    if(dest->type != RedeDestTypeBuffer) {
-        LOG_LN("Unknown destination type");
-        return -1;
+    if(dest->type == RedeDestTypeFile) {
+        fclose(dest->data.file.fp);
     }
-    return 0;
 }
 
 int RedeDest_writeByte(RedeDest* dest, unsigned char byte) {
@@ -785,6 +813,13 @@ int RedeDest_writeByte(RedeDest* dest, unsigned char byte) {
             } else {
                 return -1;
             }
+
+        case RedeDestTypeFile:
+            if(fputc(byte, dest->data.file.fp) != byte) {
+                return -1;
+            };
+            return 0;
+
         default:
             return -1;
     }
@@ -800,6 +835,11 @@ void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
                 dest->data.buffer.length = 0;
             }
             return;
+    
+        case RedeDestTypeFile:
+            fseek(dest->data.file.fp, -n - 1, SEEK_CUR);
+            return;
+            
         default:
             return;
     }

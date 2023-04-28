@@ -129,7 +129,7 @@ tests: libs
 	tests/std.test
 	tests/general.test
 
-	rm -f tests/runtime.test tests/compiler.test tests/std.test tests/general.test
+	rm -f tests/runtime.test tests/compiler.test tests/std.test tests/general.test tests/test.rd
 
 
 

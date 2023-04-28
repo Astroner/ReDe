@@ -1,5 +1,7 @@
 *.rede
+*.rd
 *.o
 rede
 rede-core
 .vscode
+*.test

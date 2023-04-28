@@ -39,7 +39,8 @@ typedef struct RedeSource {
 
 
 typedef enum RedeDestType {
-    RedeDestTypeBuffer
+    RedeDestTypeBuffer,
+    RedeDestTypeFile
 } RedeDestType;
 
 typedef struct RedeDest {
@@ -50,6 +51,10 @@ typedef struct RedeDest {
             size_t length;
             size_t maxLength;
         } buffer;
+        struct {
+            char* path;
+            FILE* fp;
+        } file;
     } data;
 } RedeDest;
 
@@ -63,6 +68,18 @@ typedef struct RedeDest {
                 .buffer = name##__buffer,\
                 .length = 0,\
                 .maxLength = bufferLength,\
+            }\
+        }\
+    };\
+    RedeDest* name = &name##__data;\
+
+
+#define Rede_createFileDest(name, filePath)\
+    RedeDest name##__data = {\
+        .type = RedeDestTypeFile,\
+        .data = {\
+            .file = {\
+                .path = filePath,\
             }\
         }\
     };\
