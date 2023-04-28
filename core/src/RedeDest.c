@@ -66,7 +66,7 @@ void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
             return;
     
         case RedeDestTypeFile:
-            fseek(dest->data.file.fp, -n - 1, SEEK_CUR);
+            fseek(dest->data.file.fp, -n, SEEK_CUR);
             return;
             
         default:

@@ -71,6 +71,18 @@ typedef struct RedeRuntimeMemory {
     };\
     RedeByteCode* name = &name##__data;
 
+#define Rede_createByteCodeFromFile(name, filePath)\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeFile,\
+        .data = {\
+            .file = {\
+                .path = (filePath)\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+
 #define Rede_createByteCode(name, ...)\
     unsigned char name##__buffer[] = { __VA_ARGS__ };\
     RedeByteCode name##__data = {\
@@ -204,7 +216,8 @@ void Rede_printMemory(RedeRuntimeMemory* memory) {
 #include <stdlib.h>
 
 typedef enum RedeByteIteratorType {
-    RedeByteIteratorTypeBuffer
+    RedeByteIteratorTypeBuffer,
+    RedeByteIteratorTypeFile
 } RedeByteIteratorType;
 
 typedef struct RedeByteIterator {
@@ -213,10 +226,13 @@ typedef struct RedeByteIterator {
         struct {
             unsigned char* cursor;
         } buffer;
+        struct {
+            FILE* fp;
+        } file;
     } data;
 } RedeByteIterator;
 
-static int initIterator(RedeByteCode* src, RedeByteIterator* iterator) {
+static int RedeByteIterator_init(RedeByteCode* src, RedeByteIterator* iterator) {
     switch(src->type) {
         case RedeByteCodeTypeBuffer:
             iterator->type = RedeByteIteratorTypeBuffer;
@@ -224,29 +240,46 @@ static int initIterator(RedeByteCode* src, RedeByteIterator* iterator) {
             break;
 
         case RedeByteCodeTypeFile:
-            fprintf(stderr, "File source is not implemented\n");
-            exit(1);
+            iterator->type = RedeByteIteratorTypeFile;
+            iterator->data.file.fp = fopen(src->data.file.path, "rb");
+            if(!iterator->data.file.fp) return -1;
             break;
+        
+        default:
+            return -1;
     }
 
     return 0;
 }
 
-static unsigned char nextByte(RedeByteIterator* iterator) {
+static void RedeByteIterator_destroy(RedeByteIterator* iterator) {
+    if(iterator->type == RedeByteIteratorTypeFile) {
+        fclose(iterator->data.file.fp);
+    }
+}
+
+static unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator) {
     switch(iterator->type) {
         case RedeByteIteratorTypeBuffer: {
             unsigned char byte = iterator->data.buffer.cursor[0];
             iterator->data.buffer.cursor++;
             return byte;
         }
+        case RedeByteIteratorTypeFile: {
+            int el = getc(iterator->data.file.fp);
+            if(el == EOF || el < 0 || el > 255) {
+                return REDE_CODE_END;
+            }
+            return (unsigned char) el;
+        }
         default:
-            fprintf(stderr, "File source is not implemented\n");
+            fprintf(stderr, "Unknown iterator type\n");
             exit(1);
     }
 }
 
 int copyToStringBuffer(RedeByteIterator* bytes, RedeRuntimeMemory* memory, RedeVariable* result) {
-    size_t stringLength = (size_t)nextByte(bytes);
+    size_t stringLength = (size_t)RedeByteIterator_nextByte(bytes);
 
     if(memory->stringBufferLength < stringLength + 1) {
         return -1;
@@ -259,7 +292,7 @@ int copyToStringBuffer(RedeByteIterator* bytes, RedeRuntimeMemory* memory, RedeV
     char* start = memory->stringBuffer + memory->stringBufferActualLength;
 
     for(unsigned int i = 0; i < stringLength; i++) {
-        memory->stringBuffer[memory->stringBufferActualLength] = nextByte(bytes);
+        memory->stringBuffer[memory->stringBufferActualLength] = RedeByteIterator_nextByte(bytes);
         memory->stringBufferActualLength++;
     }
     memory->stringBuffer[memory->stringBufferActualLength] = '\0';
@@ -283,14 +316,14 @@ static int setVariable(
     RedeRuntimeMemory* memory,
     RedeVariable* result
 ) {
-    unsigned char type = nextByte(bytes);
+    unsigned char type = RedeByteIterator_nextByte(bytes);
     switch(type) {
         case REDE_TYPE_NUMBER: {
             BytesToFloat translator;
-            translator.bytes[0] = nextByte(bytes);
-            translator.bytes[1] = nextByte(bytes);
-            translator.bytes[2] = nextByte(bytes);
-            translator.bytes[3] = nextByte(bytes);
+            translator.bytes[0] = RedeByteIterator_nextByte(bytes);
+            translator.bytes[1] = RedeByteIterator_nextByte(bytes);
+            translator.bytes[2] = RedeByteIterator_nextByte(bytes);
+            translator.bytes[3] = RedeByteIterator_nextByte(bytes);
             result->type = RedeVariableTypeNumber;
             result->data.number = translator.number;
             break;
@@ -299,7 +332,7 @@ static int setVariable(
             copyToStringBuffer(bytes, memory, result);
             break;
         case REDE_TYPE_VAR: {
-            unsigned char index = nextByte(bytes);
+            unsigned char index = RedeByteIterator_nextByte(bytes);
             if(index >= memory->variablesBufferSize) {
                 return -1;
             }
@@ -326,7 +359,7 @@ static int assignVariable(
     RedeByteIterator* bytes, 
     RedeRuntimeMemory* memory
 ) {
-    unsigned char index = nextByte(bytes);
+    unsigned char index = RedeByteIterator_nextByte(bytes);
     if(index >= memory->variablesBufferSize) {
         return -1;
     }
@@ -371,7 +404,7 @@ static int functionCall(
     RedeVariable name;
     copyToStringBuffer(bytes, memory, &name);
 
-    unsigned int argumentsNumber = nextByte(bytes);
+    unsigned int argumentsNumber = RedeByteIterator_nextByte(bytes);
 
     if(memory->stackActualSize < argumentsNumber) {
         printf(
@@ -403,18 +436,26 @@ static int functionCall(
     return 0;
 } 
 
+#define EXIT_EXECUTION(code)\
+    executionCode = code;\
+    goto exit_execution;\
+
 int Rede_execute(
     RedeByteCode* program, 
     RedeRuntimeMemory* memory,
     int (*funcCall)(const char* name, size_t nameLength, const RedeFunctionArgs* args, RedeVariable* result, void* sharedData),
     void* sharedData
 ) {
+    int executionCode = 0;
+
     RedeByteIterator iterator;
-    initIterator(program, &iterator);
+    if(RedeByteIterator_init(program, &iterator) < 0) {
+        return -1;
+    }
     
     unsigned char code;
     int status;
-    while((code = nextByte(&iterator)) != REDE_CODE_END) {
+    while((code = RedeByteIterator_nextByte(&iterator)) != REDE_CODE_END) {
         switch(code) {
             case REDE_CODE_ASSIGN:
                 status = assignVariable(&iterator, memory);
@@ -430,15 +471,17 @@ int Rede_execute(
                 break;
             default:
                 printf("Unknown statement\n");
-                return -1;
+                EXIT_EXECUTION(-1);
         }
         if(status < 0) {
             printf("Something went wrong\n");
-            return -1;
+            EXIT_EXECUTION(-1);
         }
     }
 
-    return 0;
+exit_execution:
+    RedeByteIterator_destroy(&iterator);
+    return executionCode;
 }
 
 #endif // REDE_RUNTIME_IMPLEMENTATION
@@ -837,7 +880,7 @@ void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
             return;
     
         case RedeDestTypeFile:
-            fseek(dest->data.file.fp, -n - 1, SEEK_CUR);
+            fseek(dest->data.file.fp, -n, SEEK_CUR);
             return;
             
         default:

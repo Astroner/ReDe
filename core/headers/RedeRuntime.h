@@ -66,6 +66,18 @@ typedef struct RedeRuntimeMemory {
     };\
     RedeByteCode* name = &name##__data;
 
+#define Rede_createByteCodeFromFile(name, filePath)\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeFile,\
+        .data = {\
+            .file = {\
+                .path = (filePath)\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+
 #define Rede_createByteCode(name, ...)\
     unsigned char name##__buffer[] = { __VA_ARGS__ };\
     RedeByteCode name##__data = {\

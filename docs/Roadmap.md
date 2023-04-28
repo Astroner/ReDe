@@ -11,7 +11,7 @@
  - [x] Implement the ability to compile bytecode from file source - **Rede_createFileSource()** macro
  - [x] Implement **RedeDest** structure to separate compilation into buffer and into file - **Rede_createBufferDest** macro
  - [x] Implement the ability to compile into .rd file - **Rede_createFileDest** macro
- - [ ] Implement the ability to execute bytecode from .rd files
+ - [x] Implement the ability to execute bytecode from .rd files - **Rede_createByteCodeFromFile** macro
  - [ ] Improve CLI tool to use new file features
  - [ ] Implement if-statements on bytecode level
  - [ ] Implement if-statements on compiler level

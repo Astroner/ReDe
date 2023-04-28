@@ -110,7 +110,10 @@ void compilesFromFileSource() {
 }
 
 void compilerIntoFile() {
-    Rede_createFileSource(src, "./tests/test-code.txt");
+    Rede_createStringSource(src, 
+        "a = length('hi!') "
+        "log(sum(a  2))"
+    );
 
     Rede_createCompilationMemory(memory, 100);
 
@@ -119,11 +122,13 @@ void compilerIntoFile() {
     assert(Rede_compile(src, memory, dest) == 0);
 
     int expect[] = {
-        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
-        REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+        REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+        REDE_CODE_CALL, 6, 'l', 'e', 'n', 'g', 't', 'h', 1,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
         REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
-        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 1,
-        REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_CALL, 3, 's', 'u', 'm', 2,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
         REDE_CODE_STACK_CLEAR,
         REDE_CODE_END
     };

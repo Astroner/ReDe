@@ -9,12 +9,10 @@
 #include "RedeStd.h"
 
 int main(void) {
-    // Rede_createStringSource(
-    //     code,
-    //     "log(length('hi!'))"
-    // );
-
-    Rede_createFileSource(code, "main.rede");
+    Rede_createFileSource(
+        code,
+        "main.rede"
+    );
 
     Rede_createCompilationMemory(memory, 256);
 
@@ -23,16 +21,31 @@ int main(void) {
     int status = Rede_compile(code, memory, dest);
 
     if(status < 0) return 1;
+    printf("\nCode:\n");
+    if(dest->type == RedeDestTypeFile) {
+        FILE* f = fopen("main.rd", "rb");
 
-    FILE* f = fopen("main.rd", "rb");
+        int ch;
+        while((ch = getc(f)) != EOF) {
+            printf("%d ", ch);
+        }
 
-    int ch;
-    while((ch = getc(f)) != EOF) {
-        printf("%d ", ch);
+        printf("\n");
+        fclose(f);
+    } else {
+        for(size_t i = 0; i < dest->data.buffer.length; i++) {
+            printf("%d ", dest->data.buffer.buffer[i]);
+        }
+        printf("\n");
     }
 
-    printf("\n");
-    fclose(f);
+    printf("\nExecution: \n");
+
+    Rede_createByteCodeFromFile(bytes, "main.rd");
+
+    Rede_createRuntimeMemory(runtime, 256, 256, 256);
+
+    Rede_execute(bytes, runtime, Rede_std, NULL);
 
     return 0;
 }

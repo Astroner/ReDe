@@ -43,9 +43,36 @@ void executesCodeFromBuffer() {
     assert(data == 2.0f);
 }
 
+void executesCodeFromFile() {
+    float data = 0;
+
+    unsigned char code[] = {
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+        REDE_CODE_CALL, 6, 'r', 'e', 's', 'u', 'l', 't', 1,
+        REDE_CODE_END
+    };
+
+    FILE* f = fopen("tests/test.rd", "wb");
+
+    assert(f != NULL);
+
+    fwrite(code, 1, sizeof(code), f);
+
+    fclose(f);
+
+    Rede_createByteCodeFromFile(bytes, "tests/test.rd");
+    Rede_createRuntimeMemory(runtime, 256, 256, 256);
+
+    assert(Rede_execute(bytes, runtime, funcCall, &data) == 0);
+
+    assert(data == 2.0f);
+}
+
 int main(void) {
     printf("\nRuntime tests:\n");
     TEST(executesCodeFromBuffer);
+    TEST(executesCodeFromFile);
     
     printf("\n");
     return 0;
