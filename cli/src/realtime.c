@@ -1,6 +1,8 @@
-#include "realtime.h"
+#include "main.h"
 
 #include "Rede.h"
+#include "options.h"
+
 
 #define MAX_LINE_WIDTH 100
 
@@ -50,6 +52,8 @@ void realtime() {
 
         size_t inputLength = 0;
         size_t bracketsDepth = 0;
+        size_t isString = 0;
+        int doubleQuotes = 1;
         while(1) {
             char ch = getc(stdin);
             buffer[inputLength] = ch;
@@ -59,8 +63,15 @@ void realtime() {
                 bracketsDepth++;
             } else if(ch == ')') {
                 if(bracketsDepth > 0) bracketsDepth--;
+            } else if(ch == '"' || ch == '\'') {
+                if(isString && ((ch == '"') == doubleQuotes)) {
+                    isString = 0;
+                } else if(!isString) {
+                    isString = 1;
+                    doubleQuotes = ch == '"';
+                }
             } else if(ch == '\n') {
-                if(bracketsDepth == 0) break;
+                if(bracketsDepth == 0 && !isString) break;
                 else {
                     printf(".");
                     for(size_t i = 0; i < bracketsDepth; i++) {

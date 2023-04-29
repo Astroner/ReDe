@@ -12,7 +12,11 @@
  - [x] Implement **RedeDest** structure to separate compilation into buffer and into file - **Rede_createBufferDest** macro
  - [x] Implement the ability to compile into .rd file - **Rede_createFileDest** macro
  - [x] Implement the ability to execute bytecode from .rd files - **Rede_createByteCodeFromFile** macro
- - [ ] Improve CLI tool to use new file features
+ - [x] Improve CLI tool to use new file features
+     - just provide *.rede* or *.rd* file to execute it. ```rede main.rede``` or ```rede main.rd```
+     - add **--compile** or **-c** flag to compile provided *.rede* file into *.rd* file. ```rede -c main.rede``` or ```rede --compile main.rede```
+     - add **.rd** filename after compile flag to specify the output. ```rede --compile=main.rd main.rede``` or ```rede --compile main.rd main.rede```
+ - [ ] Implement CLI **--help** and **-h** flags to provide information
  - [ ] Implement if-statements on bytecode level
  - [ ] Implement if-statements on compiler level
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)

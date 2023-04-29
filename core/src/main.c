@@ -16,7 +16,7 @@ int main(void) {
 
     Rede_createCompilationMemory(memory, 256);
 
-    Rede_createFileDest(dest, "main.rd");
+    Rede_createBufferDest(dest, 1024);
 
     int status = Rede_compile(code, memory, dest);
 
@@ -41,7 +41,7 @@ int main(void) {
 
     printf("\nExecution: \n");
 
-    Rede_createByteCodeFromFile(bytes, "main.rd");
+    Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
 
     Rede_createRuntimeMemory(runtime, 256, 256, 256);
 
