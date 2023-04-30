@@ -56,6 +56,8 @@ void Options_parse(int argc, char** argv, Options* result) {
             if(status == 1) {
                 i++;
             }
+        } else if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            result->help = 1;
         } else {
             FileType type = checkFile(argv[i]);
             if(type == FileTypeRede || type == FileTypeRD) {

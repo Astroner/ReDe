@@ -16,7 +16,7 @@
      - just provide *.rede* or *.rd* file to execute it. ```rede main.rede``` or ```rede main.rd```
      - add **--compile** or **-c** flag to compile provided *.rede* file into *.rd* file. ```rede -c main.rede``` or ```rede --compile main.rede```
      - add **.rd** filename after compile flag to specify the output. ```rede --compile=main.rd main.rede``` or ```rede --compile main.rd main.rede```
- - [ ] Implement CLI **--help** and **-h** flags to provide information
+ - [x] Implement CLI **--help** and **-h** flags to provide information - ```rede --help``` or ```rede -h```
  - [ ] Implement new bytecode instructions
      - [ ] Update Bytecode spec:
          - [x] Add booleans

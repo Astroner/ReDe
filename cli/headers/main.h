@@ -5,5 +5,6 @@
 
 void realtime();
 void fileInput(Options* options);
+void printHelp();
 
 #endif // REALTIME_H

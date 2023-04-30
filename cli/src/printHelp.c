@@ -1,0 +1,69 @@
+#include "main.h"
+
+#include <stdio.h>
+
+typedef struct Flag {
+    char* name;
+    size_t nameLength;
+    char** description;
+} Flag;
+
+
+#define MAX_NAME_LENGTH 14
+
+char* helpDescription[] = {
+    "Get CLI tool help",
+    NULL
+};
+
+char* compileDescription[] = {
+    "If .rede input file provided, compiles it into .rd file.",
+    "Add .rd filename after the flag to specify output name.",
+    "Examples:",
+    "rede --compile main.rede",
+    "rede --compile main.rd main.rede",
+    NULL
+};
+
+Flag flags[] = {
+    {
+        .name = "--help, -h",
+        .nameLength = 11,
+        helpDescription
+    },
+    {
+        .name = "--compile, -c",
+        .nameLength = 14,
+        compileDescription
+    }
+};
+
+#define DESCRIPTION_SPACES 4
+
+void printHelp() {
+    printf("ReDe language CLI\n\nFlags:\n");
+
+    for(size_t i = 0; i < sizeof(flags) / sizeof(Flag); i++) {
+        size_t nameDiff = MAX_NAME_LENGTH - flags[i].nameLength;
+
+        for(size_t j = 0; j < nameDiff; j++) {
+            printf(" ");
+        }
+
+        printf("%s", flags[i].name);
+        for(size_t j = 0; j < DESCRIPTION_SPACES; j++) {
+            printf(" ");
+        }
+
+        printf("%s\n", flags[i].description[0]);
+        char** cursor = flags[i].description + 1;
+        char* line;
+        while((line = *(cursor++))) {
+            for(size_t j = 0; j < MAX_NAME_LENGTH + DESCRIPTION_SPACES - 1; j++) {
+                printf(" ");
+            }
+            printf("%s\n", line);
+        }
+        printf("\n");
+    }
+}
