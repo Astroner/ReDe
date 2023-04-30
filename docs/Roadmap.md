@@ -19,7 +19,7 @@
  - [ ] Implement CLI **--help** and **-h** flags to provide information
  - [ ] Implement new bytecode instructions
      - [ ] Update Bytecode spec:
-         - [ ] Add booleans
+         - [x] Add booleans
          - [ ] Add REDE_CODE_IF, REDE_CODE_ELSEIF, REDE_CODE_ELSE, REDE_CODE_ENDIF for if-cases
          - [ ] Add REDE_CODE_WHILE and REDE_CODE_WHILE_END for loops
      - [ ] Implement booleans

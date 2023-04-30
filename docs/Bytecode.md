@@ -7,6 +7,7 @@
          - [String](#string)
          - [Variable](#variable)
          - [Stack](#stack)
+         - [Boolean]($boolean)
      - [Instructions](#instructions)
          - [General syntax](#general-syntax)
          - [Assign](#assign)
@@ -51,6 +52,13 @@ Represents value of the last stack item
 
 **REDE_TYPE_STACK**
  - **REDE_TYPE_STACK** - **1 byte** - **0x03**
+
+## Booleans
+Represents boolean value
+
+**REDE_TYPE_BOOL   VALUE**
+ - **REDE_TYPE_BOOL** - **1 byte** - **0x04**
+ - **VALUE** - **1 byte** - **0x00** for false everything else for true
 
 ## Instructions
 ### General syntax
