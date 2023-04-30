@@ -17,8 +17,18 @@
      - add **--compile** or **-c** flag to compile provided *.rede* file into *.rd* file. ```rede -c main.rede``` or ```rede --compile main.rede```
      - add **.rd** filename after compile flag to specify the output. ```rede --compile=main.rd main.rede``` or ```rede --compile main.rd main.rede```
  - [ ] Implement CLI **--help** and **-h** flags to provide information
- - [ ] Implement if-statements on bytecode level
- - [ ] Implement if-statements on compiler level
+ - [ ] Implement new bytecode instructions
+     - [ ] Update Bytecode spec:
+         - [ ] Add booleans
+         - [ ] Add REDE_CODE_IF, REDE_CODE_ELSEIF, REDE_CODE_ELSE, REDE_CODE_ENDIF for if-cases
+         - [ ] Add REDE_CODE_WHILE and REDE_CODE_WHILE_END for loops
+     - [ ] Implement booleans
+     - [ ] Implement REDE_CODE_IF, REDE_CODE_ELSEIF, REDE_CODE_ELSE, REDE_CODE_ENDIF for if-cases
+     - [ ] Implement REDE_CODE_WHILE and REDE_CODE_WHILE_END instructions for while loops
+ - [ ] Implement new language features
+     - [ ] Implement booleans
+     - [ ] Implement if-cases
+     - [ ] Implement while loops
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Design meta-information concept to provide useful information from compiler to runtime
  - [ ] Implement meta-info on runtime level
