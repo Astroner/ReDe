@@ -13,7 +13,13 @@
          - [Assign](#assign)
          - [Push on stack](#push-on-stack)
          - [Call function](#call-function)
-         - [If statement](#if-statement)
+         - [Clear stack](#clear-stack)
+         - [Jump](#jump)
+             - [Reducible to "true" or "false"](#reducible-to-true-or-false)
+             - [Jump destination](#jump-destination)
+             - [REDE_CODE_JUMP](#rede_code_jump)
+             - [REDE_CODE_JUMP_IF](#rede_code_jump_if)
+             - [REDE_CODE_JUMP_IF_NOT](#rede_code_jump_if_not)
          - [End](#end)
      - [Example programs](#example-programs)
          - [Sum of 2 numbers](#sum-of-2-numbers)
@@ -54,7 +60,7 @@ Represents value of the last stack item
 **REDE_TYPE_STACK**
  - **REDE_TYPE_STACK** - **1 byte** - **0x03**
 
-## Boolean
+### Boolean
 Represents boolean value
 
 **REDE_TYPE_BOOL    VALUE**
@@ -104,7 +110,7 @@ This is a group of 3 instructions:
  - **REDE_CODE_JUMP_IF** - move program cursor if the provided value is reducible to true
  - **REDE_CODE_JUMP_IF_NOT** - move program cursor if the provided value is reducible to false
 
-#### Reducible to "true" of "false"
+#### Reducible to "true" or "false"
 Rede types that are reducible to "true":
  - Numbers that not equal to zero
  - Strings with length greater than zero
@@ -147,7 +153,7 @@ Move program cursor if the provided value is reducible to true.
 Move program cursor if the provided value is reducible to false.
 
 **REDE_CODE_JUMP    REDE_TYPE    JUMP_DESTINATION**
- - **REDE_CODE_JUMP** - **0x05**
+ - **REDE_CODE_JUMP** - **0x06**
  - **REDE_TYPE** - condition value in one of the formats described [here](#data-types)
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
 
