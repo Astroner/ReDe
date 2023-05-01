@@ -23,6 +23,7 @@
          - [End](#end)
      - [Example programs](#example-programs)
          - [Sum of 2 numbers](#sum-of-2-numbers)
+         - [Loop](#iterate-over-numbers-from-0-to-9-and-call-function-a-on-evens-and-b-on-odds)
  - [Refs]($refs)
 
 # Byte code instructions
