@@ -119,6 +119,10 @@ static int setVariable(
         case REDE_TYPE_STRING:
             copyToStringBuffer(bytes, memory, result);
             break;
+        case REDE_TYPE_BOOL:
+            result->type = RedeVariableTypeBoolean;
+            result->data.boolean = RedeByteIterator_nextByte(bytes) == 0 ? 0 : 1;
+            break;
         case REDE_TYPE_VAR: {
             unsigned char index = RedeByteIterator_nextByte(bytes);
             if(index >= memory->variablesBufferSize) {

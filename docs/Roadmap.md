@@ -21,9 +21,8 @@
      - [x] Update Bytecode spec:
          - [x] Add booleans
          - [x] Add REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT for code navigation
-     - [ ] Implement booleans
-     - [ ] Implement REDE_CODE_IF, REDE_CODE_ELSEIF, REDE_CODE_ELSE, REDE_CODE_ENDIF for if-cases
-     - [ ] Implement REDE_CODE_WHILE and REDE_CODE_WHILE_END instructions for while loops
+     - [x] Implement booleans
+     - [ ] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
  - [ ] Implement new language features
      - [ ] Implement booleans
      - [ ] Implement if-cases

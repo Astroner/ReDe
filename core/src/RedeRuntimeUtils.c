@@ -11,6 +11,11 @@ void Rede_setString(RedeVariable* variable, char* string, size_t length) {
     variable->data.string.length = length;
 }
 
+void Rede_setBoolean(RedeVariable* variable, int value) {
+    variable->type = RedeVariableTypeBoolean;
+    variable->data.boolean = value == 0 ? 0 : 1;
+}
+
 void Rede_printVariable(RedeVariable* variables) {
     switch(variables->type) {
         case RedeVariableTypeNumber:
@@ -18,6 +23,9 @@ void Rede_printVariable(RedeVariable* variables) {
             break;
         case RedeVariableTypeString:
             printf("'%s'", variables->data.string.string);
+            break;
+        case RedeVariableTypeBoolean:
+            printf(variables->data.boolean ? "true" : "false");
             break;
         default:
             printf("Unknown type\n");

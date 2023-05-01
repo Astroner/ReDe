@@ -5,6 +5,7 @@
 #define REDE_TYPE_STRING 1
 #define REDE_TYPE_VAR 2
 #define REDE_TYPE_STACK 3
+#define REDE_TYPE_BOOL 4
 
 #define REDE_CODE_ASSIGN 0
 #define REDE_CODE_STACK_PUSH 1

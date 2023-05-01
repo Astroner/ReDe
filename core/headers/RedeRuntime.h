@@ -25,6 +25,7 @@ typedef struct RedeByteCode {
 typedef enum RedeVariableType {
     RedeVariableTypeNumber,
     RedeVariableTypeString,
+    RedeVariableTypeBoolean,
 } RedeVariableType;
 
 typedef struct RedeVariable {
@@ -36,6 +37,7 @@ typedef struct RedeVariable {
             char* string;
             int length;
         } string;
+        int boolean;
     } data;
 } RedeVariable;
 
