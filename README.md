@@ -17,7 +17,7 @@ Rede simply consists of 4 things:
 
 ## Variables
 To define a variable just write its name and assign a value to it:
-```python
+```ts
 numberVariable = 33
 stringVariable = "Hi!"
 anotherStringVariable = 'Hello!'
