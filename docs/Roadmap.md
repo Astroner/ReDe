@@ -24,7 +24,7 @@
      - [x] Implement booleans
      - [x] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
  - [ ] Implement new language features
-     - [ ] Implement booleans
+     - [x] Implement booleans
      - [ ] Implement if-cases
      - [ ] Implement while loops
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)

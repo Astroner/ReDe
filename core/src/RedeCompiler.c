@@ -350,15 +350,32 @@ static int writeFunctionCall(
 
 
 
+static int isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
+    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
+        char checkCh = token[i - identifierStart];
+        if(checkCh == '\n') return 0;
+        if(checkCh != RedeSourceIterator_charAt(iterator, i)) return 0;
+    }
 
+    return 1;
+}
 
-static int writeFuncCOrVar(
+static int writeBoolean(int value, RedeDest* dest) {
+    LOGS_SCOPE(writeBoolean);
+
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), 0, "Failed to write REDE_TYPE_BOOL");
+    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), 0, "Failed to write boolean value");
+
+    return 0;
+}
+
+static int writeOperationWithToken(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
     RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
-    LOGS_SCOPE(writeFuncCOrVar);
+    LOGS_SCOPE(writeOperationWithToken);
 
     size_t identifierStart = iterator->index;
     size_t identifierLength = 1;
@@ -368,8 +385,18 @@ static int writeFuncCOrVar(
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
         if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
-            LOG_LN("Variable value. ctx.functionCallDepth = %d", ctx->functionCallDepth);
-            CHECK(writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
+            LOG_LN("Function call depth: %d", ctx->functionCallDepth);
+
+            if(isToken("true", identifierStart, identifierLength, iterator)) {
+                LOG_LN("Boolean value 'true'");
+                CHECK(writeBoolean(1, dest), 0, "Failed to write boolean");
+            } else if(isToken("false", identifierStart, identifierLength, iterator)) {
+                LOG_LN("Boolean value 'false'");
+                CHECK(writeBoolean(0, dest), 0, "Failed to write boolean");
+            } else {
+                LOG_LN("Variable value");
+                CHECK(writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
+            }
             return 0;
         } else if(ch == '(') {
             LOG_LN("Function call");
@@ -412,8 +439,8 @@ static int writeExpression(
             CHECK(writeString(ch == '\'', iterator, dest, ctx), -20, "Failed to write a string");
             return 0;
         } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            LOG_LN("Variable assignment or function call");
-            int status = writeFuncCOrVar(iterator, memory, dest, ctx);
+            LOG_LN("Operation with token");
+            int status = writeOperationWithToken(iterator, memory, dest, ctx);
             CHECK(status, -30, "Failed to write function call or variable value");
             return status;
         } else if(ch == ' ' || ch == '\n' || ch == '\r') {
