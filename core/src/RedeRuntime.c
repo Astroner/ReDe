@@ -66,6 +66,24 @@ static unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator) {
     }
 }
 
+static int RedeByteIterator_moveCursor(RedeByteIterator* iterator, int shift) {
+    switch(iterator->type) {
+        case RedeByteIteratorTypeBuffer:
+            iterator->data.buffer.cursor += shift;
+            break;
+
+        case RedeByteIteratorTypeFile:
+            fseek(iterator->data.file.fp, shift, SEEK_CUR);
+            break;
+
+        default:
+            return -1;
+    }
+
+    return 0;
+}
+
+
 int copyToStringBuffer(RedeByteIterator* bytes, RedeRuntimeMemory* memory, RedeVariable* result) {
     size_t stringLength = (size_t)RedeByteIterator_nextByte(bytes);
 
@@ -226,7 +244,24 @@ static int functionCall(
     memory->stackActualSize++;
 
     return 0;
-} 
+}
+ 
+static int parseDestination(RedeByteIterator* bytes) {
+    int direction = RedeByteIterator_nextByte(bytes);
+
+    int result = 0;
+    
+    unsigned char* bts = (unsigned char*)&result;
+    bts[0] = RedeByteIterator_nextByte(bytes);
+    bts[1] = RedeByteIterator_nextByte(bytes);
+
+    if(direction != REDE_DIRECTION_FORWARD) {
+        result *= -1;
+        result -= 2;
+    }
+
+    return result;
+}
 
 #define EXIT_EXECUTION(code)\
     executionCode = code;\
@@ -258,11 +293,17 @@ int Rede_execute(
             case REDE_CODE_CALL:
                 status = functionCall(&iterator, memory, funcCall, sharedData);
                 break;
+            case REDE_CODE_JUMP: {
+                int shift = parseDestination(&iterator);
+                RedeByteIterator_moveCursor(&iterator, shift);
+                status = 0;
+                break;
+            }
             case REDE_CODE_STACK_CLEAR:
                 memory->stackActualSize = 0;
                 break;
             default:
-                printf("Unknown statement\n");
+                printf("Unknown statement %d\n", code);
                 EXIT_EXECUTION(-1);
         }
         if(status < 0) {

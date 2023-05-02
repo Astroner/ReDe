@@ -142,17 +142,23 @@ void Rede_printMemory(RedeRuntimeMemory*);
 #if !defined(REDE_BYTE_CODES)
 #define REDE_BYTE_CODES
 
-#define REDE_TYPE_NUMBER 0
-#define REDE_TYPE_STRING 1
-#define REDE_TYPE_VAR 2
-#define REDE_TYPE_STACK 3
-#define REDE_TYPE_BOOL 4
+#define REDE_TYPE_NUMBER            0x00
+#define REDE_TYPE_STRING            0x01
+#define REDE_TYPE_VAR               0x02
+#define REDE_TYPE_STACK             0x03
+#define REDE_TYPE_BOOL              0x04
 
-#define REDE_CODE_ASSIGN 0
-#define REDE_CODE_STACK_PUSH 1
-#define REDE_CODE_CALL 2
-#define REDE_CODE_STACK_CLEAR 3
-#define REDE_CODE_END 255
+#define REDE_DIRECTION_FORWARD      0x00
+#define REDE_DIRECTION_BACKWARD     0x01
+
+#define REDE_CODE_ASSIGN            0x00
+#define REDE_CODE_STACK_PUSH        0x01
+#define REDE_CODE_CALL              0x02
+#define REDE_CODE_STACK_CLEAR       0x03
+#define REDE_CODE_JUMP              0x04
+#define REDE_CODE_JUMP_IF           0x05
+#define REDE_CODE_JUMP_IF_NOT       0x06
+#define REDE_CODE_END               0xFF
 
 #endif // REDE_BYTE_CODES
 
@@ -289,6 +295,24 @@ static unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator) {
             exit(1);
     }
 }
+
+static int RedeByteIterator_moveCursor(RedeByteIterator* iterator, int shift) {
+    switch(iterator->type) {
+        case RedeByteIteratorTypeBuffer:
+            iterator->data.buffer.cursor += shift;
+            break;
+
+        case RedeByteIteratorTypeFile:
+            fseek(iterator->data.file.fp, shift, SEEK_CUR);
+            break;
+
+        default:
+            return -1;
+    }
+
+    return 0;
+}
+
 
 int copyToStringBuffer(RedeByteIterator* bytes, RedeRuntimeMemory* memory, RedeVariable* result) {
     size_t stringLength = (size_t)RedeByteIterator_nextByte(bytes);
@@ -450,7 +474,24 @@ static int functionCall(
     memory->stackActualSize++;
 
     return 0;
-} 
+}
+ 
+static int parseDestination(RedeByteIterator* bytes) {
+    int direction = RedeByteIterator_nextByte(bytes);
+
+    int result = 0;
+    
+    unsigned char* bts = (unsigned char*)&result;
+    bts[0] = RedeByteIterator_nextByte(bytes);
+    bts[1] = RedeByteIterator_nextByte(bytes);
+
+    if(direction != REDE_DIRECTION_FORWARD) {
+        result *= -1;
+        result -= 2;
+    }
+
+    return result;
+}
 
 #define EXIT_EXECUTION(code)\
     executionCode = code;\
@@ -482,11 +523,17 @@ int Rede_execute(
             case REDE_CODE_CALL:
                 status = functionCall(&iterator, memory, funcCall, sharedData);
                 break;
+            case REDE_CODE_JUMP: {
+                int shift = parseDestination(&iterator);
+                RedeByteIterator_moveCursor(&iterator, shift);
+                status = 0;
+                break;
+            }
             case REDE_CODE_STACK_CLEAR:
                 memory->stackActualSize = 0;
                 break;
             default:
-                printf("Unknown statement\n");
+                printf("Unknown statement %d\n", code);
                 EXIT_EXECUTION(-1);
         }
         if(status < 0) {
@@ -816,17 +863,23 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
 #if !defined(REDE_BYTE_CODES)
 #define REDE_BYTE_CODES
 
-#define REDE_TYPE_NUMBER 0
-#define REDE_TYPE_STRING 1
-#define REDE_TYPE_VAR 2
-#define REDE_TYPE_STACK 3
-#define REDE_TYPE_BOOL 4
+#define REDE_TYPE_NUMBER            0x00
+#define REDE_TYPE_STRING            0x01
+#define REDE_TYPE_VAR               0x02
+#define REDE_TYPE_STACK             0x03
+#define REDE_TYPE_BOOL              0x04
 
-#define REDE_CODE_ASSIGN 0
-#define REDE_CODE_STACK_PUSH 1
-#define REDE_CODE_CALL 2
-#define REDE_CODE_STACK_CLEAR 3
-#define REDE_CODE_END 255
+#define REDE_DIRECTION_FORWARD      0x00
+#define REDE_DIRECTION_BACKWARD     0x01
+
+#define REDE_CODE_ASSIGN            0x00
+#define REDE_CODE_STACK_PUSH        0x01
+#define REDE_CODE_CALL              0x02
+#define REDE_CODE_STACK_CLEAR       0x03
+#define REDE_CODE_JUMP              0x04
+#define REDE_CODE_JUMP_IF           0x05
+#define REDE_CODE_JUMP_IF_NOT       0x06
+#define REDE_CODE_END               0xFF
 
 #endif // REDE_BYTE_CODES
 

@@ -17,6 +17,7 @@
          - [Jump](#jump)
              - [Reducible to "true" or "false"](#reducible-to-true-or-false)
              - [Jump destination](#jump-destination)
+             - [Cursor move behavior](#cursor-move-behavior)
              - [REDE_CODE_JUMP](#rede_code_jump)
              - [REDE_CODE_JUMP_IF](#rede_code_jump_if)
              - [REDE_CODE_JUMP_IF_NOT](#rede_code_jump_if_not)
@@ -145,18 +146,56 @@ Move program cursor
 #### REDE_CODE_JUMP_IF
 Move program cursor if the provided value is reducible to true.
 
-**REDE_CODE_JUMP    REDE_TYPE    JUMP_DESTINATION**
- - **REDE_CODE_JUMP** - **0x05**
+**REDE_CODE_JUMP_IF    REDE_TYPE    JUMP_DESTINATION**
+ - **REDE_CODE_JUMP_IF** - **0x05**
  - **REDE_TYPE** - condition value in one of the formats described [here](#data-types)
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
 
 #### REDE_CODE_JUMP_IF_NOT
 Move program cursor if the provided value is reducible to false.
 
-**REDE_CODE_JUMP    REDE_TYPE    JUMP_DESTINATION**
- - **REDE_CODE_JUMP** - **0x06**
+**REDE_CODE_JUMP_IF_NOT    REDE_TYPE    JUMP_DESTINATION**
+ - **REDE_CODE_JUMP_IF_NOT** - **0x06**
  - **REDE_TYPE** - condition value in one of the formats described [here](#data-types)
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
+
+#### Cursor move behavior
+Cursor shift counts from the last byte of the instruction and it doesn't include current byte.
+
+##### Examples
+Forward jump
+```c
+unsigned char bytes[] = {
+    REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 0x1E, 0x00,
+    1, 2, 3, 4, 5, 6,
+    1, 2, 3, 4, 5, 6,
+    1, 2, 3, 4, 5, 6,
+    1, 2, 3, 4, 5, 6,
+    1, 2, 3, 4, 5, 6,
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+    REDE_CODE_END
+};
+```
+Program cursor will move for 30 bytes from the last byte of the jump instruction (**0x00**) and will point to REDE_CODE_STACK_PUSH instruction.
+
+Backward jump:
+```c
+unsigned char bytes[] = {
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+    REDE_CODE_STACK_CLEAR,
+    REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 0x0F, 0x00,
+    REDE_CODE_END
+};
+```
+Here we are creating an infinite loop with backward jump. We jump 15 bytes back from the last byte of the instruction(**0x00**) to REDE_CODE_STACK_PUSH
+
+In general you can thing about the jump length as the number of bytes between start and finish.
+
+if we have a list of numbers:
+> 1 2 3 4 5 6 7 8 9
+and we want to jump from 1 to 9 we need to pass 7 numbers and it also work in the reversed direction: we need to pass 7 numbers to jump from 9 to 1.
 
 ### End
 Should be at the end of the program.

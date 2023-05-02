@@ -43,11 +43,10 @@ int main(void) {
 
     // Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
     Rede_createByteCode(bytes, 
-        REDE_CODE_ASSIGN, 0, REDE_TYPE_BOOL, 1,
-        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
-        REDE_CODE_STACK_PUSH, REDE_TYPE_BOOL, 0,
-        REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'h', 'i', '!',
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
         REDE_CODE_STACK_CLEAR,
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 0x0F, 0x00,
         REDE_CODE_END
     );
 
