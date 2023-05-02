@@ -30,6 +30,7 @@ typedef struct RedeByteCode {
 typedef enum RedeVariableType {
     RedeVariableTypeNumber,
     RedeVariableTypeString,
+    RedeVariableTypeBoolean,
 } RedeVariableType;
 
 typedef struct RedeVariable {
@@ -41,6 +42,7 @@ typedef struct RedeVariable {
             char* string;
             int length;
         } string;
+        int boolean;
     } data;
 } RedeVariable;
 
@@ -131,6 +133,7 @@ void Rede_printVariable(RedeVariable*);
 void Rede_printlnVariable(RedeVariable*);
 void Rede_setNumber(RedeVariable* variable, float number);
 void Rede_setString(RedeVariable* variable, char* string, size_t length);
+void Rede_setBoolean(RedeVariable* variable, int value);
 void Rede_printMemory(RedeRuntimeMemory*);
 
 #endif // REDE_RUNTIME_UTILS_H
@@ -143,6 +146,7 @@ void Rede_printMemory(RedeRuntimeMemory*);
 #define REDE_TYPE_STRING 1
 #define REDE_TYPE_VAR 2
 #define REDE_TYPE_STACK 3
+#define REDE_TYPE_BOOL 4
 
 #define REDE_CODE_ASSIGN 0
 #define REDE_CODE_STACK_PUSH 1
@@ -163,6 +167,11 @@ void Rede_setString(RedeVariable* variable, char* string, size_t length) {
     variable->data.string.length = length;
 }
 
+void Rede_setBoolean(RedeVariable* variable, int value) {
+    variable->type = RedeVariableTypeBoolean;
+    variable->data.boolean = value == 0 ? 0 : 1;
+}
+
 void Rede_printVariable(RedeVariable* variables) {
     switch(variables->type) {
         case RedeVariableTypeNumber:
@@ -170,6 +179,9 @@ void Rede_printVariable(RedeVariable* variables) {
             break;
         case RedeVariableTypeString:
             printf("'%s'", variables->data.string.string);
+            break;
+        case RedeVariableTypeBoolean:
+            printf(variables->data.boolean ? "true" : "false");
             break;
         default:
             printf("Unknown type\n");
@@ -330,6 +342,10 @@ static int setVariable(
         }
         case REDE_TYPE_STRING:
             copyToStringBuffer(bytes, memory, result);
+            break;
+        case REDE_TYPE_BOOL:
+            result->type = RedeVariableTypeBoolean;
+            result->data.boolean = RedeByteIterator_nextByte(bytes) == 0 ? 0 : 1;
             break;
         case REDE_TYPE_VAR: {
             unsigned char index = RedeByteIterator_nextByte(bytes);
@@ -804,6 +820,7 @@ char RedeSourceIterator_current(RedeSourceIterator* iterator) {
 #define REDE_TYPE_STRING 1
 #define REDE_TYPE_VAR 2
 #define REDE_TYPE_STACK 3
+#define REDE_TYPE_BOOL 4
 
 #define REDE_CODE_ASSIGN 0
 #define REDE_CODE_STACK_PUSH 1
