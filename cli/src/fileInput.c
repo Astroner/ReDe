@@ -36,13 +36,21 @@ void fileInput(Options* options) {
         return;
     }
 
-    if(options->compile) return;
+    if(options->compile && !options->postCompilationExecution) return;
 
-    Rede_createByteCodeFromBuffer(bytes, dest.data.buffer.buffer);
+    RedeByteCode bytes;
+
+    if(options->compile) {
+        bytes.type = RedeByteCodeTypeFile;
+        bytes.data.file.path = dest.data.file.path;
+    } else {
+        bytes.type = RedeByteCodeTypeBuffer;
+        bytes.data.buffer.buffer = dest.data.buffer.buffer;
+    }
     
     Rede_createRuntimeMemory(runtime, 256, 256, 1000);
 
-    int executionStatus = Rede_execute(bytes, runtime, Rede_std, NULL);
+    int executionStatus = Rede_execute(&bytes, runtime, Rede_std, NULL);
 
     if(executionStatus < 0) {
         printf("Failed to execute\n");

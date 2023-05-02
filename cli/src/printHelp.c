@@ -17,11 +17,18 @@ char* helpDescription[] = {
 };
 
 char* compileDescription[] = {
-    "If .rede input file provided, compiles it into .rd file.",
+    "If .rede input file is provided, compiles it into .rd file.",
     "Add .rd filename after the flag to specify output name.",
     "Examples:",
     "rede --compile main.rede",
     "rede --compile main.rd main.rede",
+    NULL
+};
+
+char* postCompilationExecutionDescription[] = {
+    "Add this flag to enable post compilation execution.",
+    "By default rede doesn't execute the code after the compilation,",
+    "but with this flag rede will automaticaly execute generated .rd file",
     NULL
 };
 
@@ -35,6 +42,11 @@ Flag flags[] = {
         .name = "--compile, -c",
         .nameLength = 14,
         compileDescription
+    },
+    {
+        .name = "--execute, -e",
+        .nameLength = 14,
+        postCompilationExecutionDescription
     }
 };
 

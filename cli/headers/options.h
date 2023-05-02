@@ -15,6 +15,7 @@ typedef struct Options {
     int compile;
     char* outPath;
     int help;
+    int postCompilationExecution;
 } Options;
 
 void Options_parse(int argc, char** argv, Options* result);
