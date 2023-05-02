@@ -710,6 +710,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dist)
 #endif // REDE_COMPILER_H
 
 #if defined(REDE_COMPILER_IMPLEMENTATION)
+
 #include <stdio.h>
 
 #if !defined(REDE_SOURCE_ITERATOR)
@@ -1001,20 +1002,68 @@ void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
 
 
 
-#include <stdio.h>
-#include <stdlib.h>
-
-
+#if !defined(REDE_COMPILER_HELPERS)
+#define REDE_COMPILER_HELPERS
 
 typedef struct RedeCompilationContext {
     int functionCallDepth;
     int isAssignment;
+    int ifStatementDepth;
 } RedeCompilationContext;
 
+int RedeCompilerHelpers_writeFloat(
+    char firstChar, 
+    RedeSourceIterator* iterator, RedeDest* dest, RedeCompilationContext* ctx
+);
 
-static int writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+int RedeCompilerHelpers_writeString(
+    int singleQuoted, 
+    RedeSourceIterator* iterator, RedeDest* dest, RedeCompilationContext* ctx
+);
 
-static unsigned long hash(
+int RedeCompilerHelpers_writeVariableValue(
+    size_t identifierStart, size_t identifierLength, 
+    RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest
+);
+
+int RedeCompilerHelpers_writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+int RedeCompilerHelpers_writeAssignment(
+    size_t tokenStart, size_t tokenLength, 
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+);
+
+int RedeCompilerHelpers_writeFunctionCall(
+    size_t identifierStart, size_t identifierLength, 
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+);
+
+int RedeCompilerHelpers_writeOperationWithToken(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+);
+
+int RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);
+
+int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator);
+
+int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest);
+
+#endif // REDE_COMPILER_HELPERS
+
+
+
+unsigned long RedeCompilerHelpers_hash(
     RedeSourceIterator* iterator, 
     size_t identifierStart, 
     size_t identifierLength
@@ -1031,8 +1080,118 @@ static unsigned long hash(
     return hash;
 }
 
+int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
+    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
+        char checkCh = token[i - identifierStart];
+        if(checkCh == '\n') return 0;
+        if(checkCh != RedeSourceIterator_charAt(iterator, i)) return 0;
+    }
 
-static size_t pow10L(size_t power) {
+    return 1;
+}
+
+int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
+    LOGS_SCOPE(writeBoolean);
+
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), 0, "Failed to write REDE_TYPE_BOOL");
+    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), 0, "Failed to write boolean value");
+
+    return 0;
+}
+
+
+int RedeCompilerHelpers_writeAssignment(
+    size_t tokenStart, size_t tokenLength, 
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeAssignment);
+    ctx->isAssignment = 1;
+
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
+
+    unsigned long arrayIndex = RedeCompilerHelpers_hash(iterator, tokenStart, tokenLength) % memory->variables.bufferSize;
+    LOG_LN("VARIABLE_HASH_TABLE_INDEX: %zu", arrayIndex);
+
+    RedeVariableName* name = memory->variables.buffer + arrayIndex;
+
+    if(!name->isBusy) {
+        name->isBusy = 1;
+        name->index = memory->variables.nextIndex++;
+        name->start = tokenStart;
+        name->length = tokenLength;
+        LOG_LN("Registering new variable with index %d", name->index);
+    }
+    LOGS_ONLY(
+        else {
+            LOG_LN("Variable already exist, index = %d", name->index);
+        }
+    )
+
+    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
+
+    int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
+
+    CHECK(status, -10, "Failed to write expression");
+
+    if(status == 1) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
+        CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
+    }
+
+    ctx->isAssignment = 0;
+    return 0;
+}
+
+
+int RedeCompilerHelpers_writeExpression(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeExpression);
+
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(iterator))) {
+        LOG_LN("CHAR: '%c'(%d)", ch, ch);
+        
+        if((ch >= '0' && ch <= '9') || ch == '-') {
+            LOG_LN("Number assignment");
+            CHECK(RedeCompilerHelpers_writeFloat(ch, iterator, dest, ctx), -10, "Failed to write a float");
+            return 0;
+        } else if(ch == '"' || ch == '\'') {
+            LOG_LN("String assignment");
+            CHECK(RedeCompilerHelpers_writeString(ch == '\'', iterator, dest, ctx), -20, "Failed to write a string");
+            return 0;
+        } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+            LOG_LN("Operation with token");
+            int status = RedeCompilerHelpers_writeOperationWithToken(iterator, memory, dest, ctx);
+            CHECK(status, -30, "Failed to write function call or variable value");
+            return status;
+        } else if(ch == ' ' || ch == '\n' || ch == '\r') {
+            continue;
+        } else if(ctx->functionCallDepth > 0 && ch == ')') {
+            LOG_LN("GOT ')' during function arguments parsing, which means the end of the function call");
+            LOG_LN("Moving cursor back by 1");
+            RedeDest_moveCursorBack(dest, 1);
+            
+            return 3;
+        } else {
+            LOG_LN("Unexpected token");
+            return -1;
+        }
+    }
+
+    LOG_LN("Unexpected end of the string");
+    return -2;
+}
+
+
+static size_t RedeCompilerHelpers_pow10L(size_t power) {
     size_t result = 1;
 
     for(size_t i = 0; i < power; i++) {
@@ -1042,12 +1201,7 @@ static size_t pow10L(size_t power) {
     return result;
 }
 
-
-
-
-
-
-static int writeFloat(
+int RedeCompilerHelpers_writeFloat(
     char firstChar, 
     RedeSourceIterator* iterator,
     RedeDest* dest,
@@ -1076,7 +1230,7 @@ static int writeFloat(
                 result *= 10;
                 result += ch - '0';
             } else {
-                result += (float)(ch - '0') / pow10L(floatingPointPosition);
+                result += (float)(ch - '0') / RedeCompilerHelpers_pow10L(floatingPointPosition);
                 floatingPointPosition++;
             }
         } else if(ch == '.' && !floatingPoint) {
@@ -1111,11 +1265,150 @@ static int writeFloat(
 }
 
 
+int RedeCompilerHelpers_writeFunctionCall(
+    size_t identifierStart, size_t identifierLength, 
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeFunctionCall);
+    ctx->functionCallDepth++;
+
+    if(ctx->isAssignment && ctx->functionCallDepth == 1) {
+        LOG_LN("Shifting the buffer cursor back because of function call inside of assignment");
+        RedeDest_moveCursorBack(dest, 2);
+    } else if(ctx->functionCallDepth > 1) {
+        LOG_LN("Shifting the buffer cursor back because of function call inside of function call");
+        RedeDest_moveCursorBack(dest, 1);
+    } else if(ctx->ifStatementDepth == 1 && ctx->functionCallDepth == 1) {
+        LOG_LN("Shifting the buffer cursor back because of function call inside of if-statement");
+        RedeDest_moveCursorBack(dest, 1);
+    }
+
+    LOG_LN("Current function call depth: %d", ctx->functionCallDepth);
+
+    LOG("Identifier (s: %zu, l: %zu)", identifierStart, identifierLength);
+    LOGS_ONLY(
+        for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
+            printf(" '%c'", RedeSourceIterator_charAt(iterator, i));
+        }
+        printf("\n");
+    )
+    
+    size_t argc = 0;
+    while(1) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
+        int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
+        CHECK(status, -10, "Failed to write parameter with index %zu", argc - 1);
+
+        if(status == 3) {
+            LOG_LN("Got status 3 - just ')' at the end without expression");
+            break;
+        } else {
+            argc++;
+        }
+
+        char argEndingChar = RedeSourceIterator_current(iterator);
+
+        if(argEndingChar == ')') {
+            LOG_LN("Got ')', end of the arguments");
+            break;
+        } else if(argEndingChar == ' ' || argEndingChar == '\n' || argEndingChar == '\r') {
+            LOG_LN("Got white space, processing next argument");
+        } else {
+            LOG_LN("Unexpected end of the arguments at position '%zu'", iterator->index);
+
+            return -2;
+        }
+    }
+    if(ctx->functionCallDepth > 1) {
+        LOG_LN("Have to check next char because of function call inside of function call");
+        RedeSourceIterator_nextChar(iterator);
+    }
+
+    LOG_LN("Arguments length: %zu", argc);
+
+    if(identifierLength > 255) {
+        LOG_LN("Identifier length is too big: %zu > 255", identifierLength);
+        return -1;
+    }
+
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_CALL), 0, "Failed to write REDE_CODE_CALL");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)identifierLength), 0, "Failed to write identifier length");
+
+    LOG_LN("Writing identifier: ");
+    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
+        char ch = RedeSourceIterator_charAt(iterator, i);
+        LOG_LN("CHAR: '%c'(%d)", ch, ch);
+
+        CHECK(RedeDest_writeByte(dest, ch), 0, "Failed to write");
+    }
+
+    if(argc > 255) {
+        LOG_LN("Too much parameters: %zu > 255", argc);
+        return -1;
+    }
+
+    CHECK(RedeDest_writeByte(dest, (unsigned char)argc), 0, "Failed to write arguments count");
+
+    ctx->functionCallDepth--;
+
+    return 0;
+}
 
 
+int RedeCompilerHelpers_writeOperationWithToken(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeOperationWithToken);
+
+    size_t identifierStart = iterator->index;
+    size_t identifierLength = 1;
+
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(iterator))) {
+        LOG_LN("CHAR: '%c'(%d)", ch, ch);
+
+        if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
+            LOG_LN("Function call depth: %d", ctx->functionCallDepth);
+
+            if(RedeCompilerHelpers_isToken("true", identifierStart, identifierLength, iterator)) {
+                LOG_LN("Boolean value 'true'");
+                CHECK(RedeCompilerHelpers_writeBoolean(1, dest), 0, "Failed to write boolean");
+            } else if(RedeCompilerHelpers_isToken("false", identifierStart, identifierLength, iterator)) {
+                LOG_LN("Boolean value 'false'");
+                CHECK(RedeCompilerHelpers_writeBoolean(0, dest), 0, "Failed to write boolean");
+            } else if(RedeCompilerHelpers_isToken("if", identifierStart, identifierLength, iterator)) {
+                LOG_LN("If-statement");
+                LOG_LN("NOT IMPLEMENTED");
+                return -1;
+            } else {
+                LOG_LN("Variable value");
+                CHECK(RedeCompilerHelpers_writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
+            }
+            return 0;
+        } else if(ch == '(') {
+            LOG_LN("Function call");
+            CHECK(RedeCompilerHelpers_writeFunctionCall(identifierStart, identifierLength, iterator, memory, dest, ctx), -20, "Failed to write function call");
+            return 1;
+        } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+            identifierLength++;
+        } else {
+            LOG_LN("Unexpected char '%c'(%d)", ch, ch);
+
+            return -1;
+        }
+    }
+
+    return -1;
+}
 
 
-static int writeString(
+int RedeCompilerHelpers_writeString(
     int singleQuoted, 
     RedeSourceIterator* iterator,
     RedeDest* dest,
@@ -1208,10 +1501,7 @@ static int writeString(
 }
 
 
-
-
-
-static int writeVariableValue(
+int RedeCompilerHelpers_writeVariableValue(
     size_t identifierStart, 
     size_t identifierLength, 
     RedeSourceIterator* iterator, 
@@ -1228,7 +1518,7 @@ static int writeVariableValue(
         printf("\n");
     )
 
-    unsigned long hashTableIndex = hash(iterator, identifierStart, identifierLength) % memory->variables.bufferSize;
+    unsigned long hashTableIndex = RedeCompilerHelpers_hash(iterator, identifierStart, identifierLength) % memory->variables.bufferSize;
 
     LOG_LN("Hash table array index: %zu", hashTableIndex);
 
@@ -1250,263 +1540,36 @@ static int writeVariableValue(
 }
 
 
-
-
-
-
-static int writeFunctionCall(
-    size_t identifierStart, size_t identifierLength, 
-    RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory, 
+int RedeCompilerHelpers_writeIfStatement(
+    RedeSourceIterator* iterator,
+    RedeCompilationMemory* memory,
     RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
-    LOGS_SCOPE(writeFunctionCall);
-    ctx->functionCallDepth++;
+    LOGS_SCOPE(writeIfStatement);
+    ctx->ifStatementDepth++;
+    LOG_LN("Current if depth = %d", ctx->ifStatementDepth);
 
-    if(ctx->isAssignment && ctx->functionCallDepth == 1) {
-        LOG_LN("Shifting the buffer cursor back because of function call inside of assignment");
-        RedeDest_moveCursorBack(dest, 2);
-    } else if(ctx->functionCallDepth > 1) {
-        LOG_LN("Shifting the buffer cursor back because of function call inside of function call");
-        RedeDest_moveCursorBack(dest, 1);
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT");
+
+    int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
+    CHECK(status, -1, "Failed to write the condition")
+
+    if(status == 1) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT after the function call");
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after the function call");
     }
 
-    LOG_LN("Current function call depth: %d", ctx->functionCallDepth);
-
-    LOG("Identifier (s: %zu, l: %zu)", identifierStart, identifierLength);
-    LOGS_ONLY(
-        for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
-            printf(" '%c'", RedeSourceIterator_charAt(iterator, i));
-        }
-        printf("\n");
-    )
-    
-    size_t argc = 0;
-    while(1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
-        int status = writeExpression(iterator, memory, dest, ctx);
-        CHECK(status, -10, "Failed to write parameter with index %zu", argc - 1);
-
-        if(status == 3) {
-            LOG_LN("Got status 3 - just ')' at the end without expression");
-            break;
-        } else {
-            argc++;
-        }
-
-        char argEndingChar = RedeSourceIterator_current(iterator);
-
-        if(argEndingChar == ')') {
-            LOG_LN("Got ')', end of the arguments");
-            break;
-        } else if(argEndingChar == ' ' || argEndingChar == '\n' || argEndingChar == '\r') {
-            LOG_LN("Got white space, processing next argument");
-        } else {
-            LOG_LN("Unexpected end of the arguments at position '%zu'", iterator->index);
-
-            return -2;
-        }
-    }
-    if(ctx->functionCallDepth > 1) {
-        LOG_LN("Have to check next char because of function call inside of function call");
-        RedeSourceIterator_nextChar(iterator);
-    }
-
-    LOG_LN("Arguments length: %zu", argc);
-
-    if(identifierLength > 255) {
-        LOG_LN("Identifier length is too big: %zu > 255", identifierLength);
-        return -1;
-    }
-
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_CALL), 0, "Failed to write REDE_CODE_CALL");
-    CHECK(RedeDest_writeByte(dest, (unsigned char)identifierLength), 0, "Failed to write identifier length");
-
-    LOG_LN("Writing identifier: ");
-    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
-        char ch = RedeSourceIterator_charAt(iterator, i);
-        LOG_LN("CHAR: '%c'(%d)", ch, ch);
-
-        CHECK(RedeDest_writeByte(dest, ch), 0, "Failed to write");
-    }
-
-    if(argc > 255) {
-        LOG_LN("Too much parameters: %zu > 255", argc);
-        return -1;
-    }
-
-    CHECK(RedeDest_writeByte(dest, (unsigned char)argc), 0, "Failed to write arguments count");
-
-    ctx->functionCallDepth--;
-
-    return 0;
-}
 
 
-
-static int isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
-    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
-        char checkCh = token[i - identifierStart];
-        if(checkCh == '\n') return 0;
-        if(checkCh != RedeSourceIterator_charAt(iterator, i)) return 0;
-    }
-
-    return 1;
-}
-
-static int writeBoolean(int value, RedeDest* dest) {
-    LOGS_SCOPE(writeBoolean);
-
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), 0, "Failed to write REDE_TYPE_BOOL");
-    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), 0, "Failed to write boolean value");
-
-    return 0;
-}
-
-static int writeOperationWithToken(
-    RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory, 
-    RedeDest* dest,
-    RedeCompilationContext* ctx
-) {
-    LOGS_SCOPE(writeOperationWithToken);
-
-    size_t identifierStart = iterator->index;
-    size_t identifierLength = 1;
-
-    char ch;
-    while((ch = RedeSourceIterator_nextChar(iterator))) {
-        LOG_LN("CHAR: '%c'(%d)", ch, ch);
-
-        if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
-            LOG_LN("Function call depth: %d", ctx->functionCallDepth);
-
-            if(isToken("true", identifierStart, identifierLength, iterator)) {
-                LOG_LN("Boolean value 'true'");
-                CHECK(writeBoolean(1, dest), 0, "Failed to write boolean");
-            } else if(isToken("false", identifierStart, identifierLength, iterator)) {
-                LOG_LN("Boolean value 'false'");
-                CHECK(writeBoolean(0, dest), 0, "Failed to write boolean");
-            } else {
-                LOG_LN("Variable value");
-                CHECK(writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
-            }
-            return 0;
-        } else if(ch == '(') {
-            LOG_LN("Function call");
-            CHECK(writeFunctionCall(identifierStart, identifierLength, iterator, memory, dest, ctx), -20, "Failed to write function call");
-            return 1;
-        } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            identifierLength++;
-        } else {
-            LOG_LN("Unexpected char '%c'(%d)", ch, ch);
-
-            return -1;
-        }
-    }
-
+    LOG_LN("NOT IMPLEMENTED");
     return -1;
 }
 
 
 
-
-
-static int writeExpression(
-    RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory, 
-    RedeDest* dest,
-    RedeCompilationContext* ctx
-) {
-    LOGS_SCOPE(writeExpression);
-
-    char ch;
-    while((ch = RedeSourceIterator_nextChar(iterator))) {
-        LOG_LN("CHAR: '%c'(%d)", ch, ch);
-        
-        if((ch >= '0' && ch <= '9') || ch == '-') {
-            LOG_LN("Number assignment");
-            CHECK(writeFloat(ch, iterator, dest, ctx), -10, "Failed to write a float");
-            return 0;
-        } else if(ch == '"' || ch == '\'') {
-            LOG_LN("String assignment");
-            CHECK(writeString(ch == '\'', iterator, dest, ctx), -20, "Failed to write a string");
-            return 0;
-        } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-            LOG_LN("Operation with token");
-            int status = writeOperationWithToken(iterator, memory, dest, ctx);
-            CHECK(status, -30, "Failed to write function call or variable value");
-            return status;
-        } else if(ch == ' ' || ch == '\n' || ch == '\r') {
-            continue;
-        } else if(ctx->functionCallDepth > 0 && ch == ')') {
-            LOG_LN("GOT ')' during function arguments parsing, which means the end of the function call");
-            LOG_LN("Moving cursor back by 1");
-            RedeDest_moveCursorBack(dest, 1);
-            
-            return 3;
-        } else {
-            LOG_LN("Unexpected token");
-            return -1;
-        }
-    }
-
-    LOG_LN("Unexpected end of the string");
-    return -2;
-}
-
-
-
-
-
-static int writeAssignment(
-    size_t tokenStart, 
-    size_t tokenLength, 
-    RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory,
-    RedeDest* dest,
-    RedeCompilationContext* ctx
-) {
-    LOGS_SCOPE(writeAssignment);
-    ctx->isAssignment = 1;
-
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
-
-    unsigned long arrayIndex = hash(iterator, tokenStart, tokenLength) % memory->variables.bufferSize;
-    LOG_LN("VARIABLE_HASH_TABLE_INDEX: %zu", arrayIndex);
-
-    RedeVariableName* name = memory->variables.buffer + arrayIndex;
-
-    if(!name->isBusy) {
-        name->isBusy = 1;
-        name->index = memory->variables.nextIndex++;
-        name->start = tokenStart;
-        name->length = tokenLength;
-        LOG_LN("Registering new variable with index %d", name->index);
-    }
-    LOGS_ONLY(
-        else {
-            LOG_LN("Variable already exist, index = %d", name->index);
-        }
-    )
-
-    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
-
-    int status = writeExpression(iterator, memory, dest, ctx);
-
-    CHECK(status, -10, "Failed to write expression");
-
-    if(status == 1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
-        CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
-        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
-    }
-
-    ctx->isAssignment = 0;
-    return 0;
-}
-
+#include <stdio.h>
+#include <stdlib.h>
 
 
 
@@ -1520,7 +1583,8 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
 
     RedeCompilationContext ctx = {
         .isAssignment = 0,
-        .functionCallDepth = 0
+        .functionCallDepth = 0,
+        .ifStatementDepth = 0
     };
 
     RedeSourceIterator iterator;
@@ -1539,6 +1603,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
     int searchingForTokenStart = 1;
     size_t tokenStart = 0;
     size_t tokenLength = 0;
+    int tokenEnded = 0;
 
     char ch;
     while((ch = RedeSourceIterator_nextChar(&iterator))) {
@@ -1548,10 +1613,32 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
             if(searchingForTokenStart) {
                 tokenStart = iterator.index;
                 searchingForTokenStart = 0;
+                tokenEnded = 0;
             }
+            if(tokenEnded) {
+                LOG_LN("Unexpected char '%c' at position %zu", ch, iterator.index);
+                EXIT_COMPILER(-1);
+            }
+
             tokenLength++;
         } else if(ch == ' ' || ch == '\n' || ch == '\r') {
-            continue;
+            if(!tokenEnded && !searchingForTokenStart) {
+                tokenEnded = 1;
+                if(RedeCompilerHelpers_isToken("if", tokenStart, tokenLength, &iterator)) {
+                    LOG_LN("If-statement");
+                    CHECK_ELSE(
+                        RedeCompilerHelpers_writeIfStatement(&iterator, memory, dest, &ctx), 
+                        EXIT_COMPILER(CONDITION_VALUE - 200), 
+                        "Failed to write if-statement"
+                    );
+                    searchingForTokenStart = 1;
+                    tokenLength = 0;
+                } else if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, &iterator)) {
+                    LOG_LN("While loop");
+                    LOG_LN("Mot implemented");
+                    EXIT_COMPILER(-1);
+                }
+            }
         } else if(ch == '=') {
             if(tokenLength == 0) {
                 LOG_LN("Unexpected '=' literal");
@@ -1569,7 +1656,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
             )
 
             CHECK_ELSE(
-                writeAssignment(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
+                RedeCompilerHelpers_writeAssignment(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
                 EXIT_COMPILER(CONDITION_VALUE - 10), 
                 "Failed to write an assignment"
             );
@@ -1584,7 +1671,7 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
             }
             LOG_LN("Function call:");
             CHECK_ELSE(
-                writeFunctionCall(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
+                RedeCompilerHelpers_writeFunctionCall(tokenStart, tokenLength, &iterator, memory, dest, &ctx), 
                 EXIT_COMPILER(CONDITION_VALUE - 100), 
                 "Failed to write function call"
             );

@@ -62,15 +62,17 @@ $(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h core/headers/RedeByteCodes.h cor
 # Builds compiler STB-like lib
 $(COMPILER_LIB_NAME):\
 		core/headers/RedeCompiler.h \
+		core/headers/RedeCompilerHelpers.h \
 		core/headers/RedeSourceIterator.h \
 		core/headers/logs.h \
 		core/headers/RedeByteCodes.h \
 		core/src/RedeCompiler.c \
 		core/src/RedeSourceIterator.c \
-		core/src/RedeDest.c
+		core/src/RedeDest.c \
+		$(wildcard core/src/compiler-helpers/*.c)
 	cat core/headers/RedeCompiler.h > $(COMPILER_LIB_NAME)
 	echo "\n#if defined(REDE_COMPILER_IMPLEMENTATION)" >> $(COMPILER_LIB_NAME)
-	cat core/headers/RedeSourceIterator.h >> $(COMPILER_LIB_NAME)
+	tail -n +2 core/headers/RedeSourceIterator.h >> $(COMPILER_LIB_NAME)
 	echo "\n" >> $(COMPILER_LIB_NAME)
 	tail -n +3 core/src/RedeSourceIterator.c >> $(COMPILER_LIB_NAME)
 	echo "\n" >> $(COMPILER_LIB_NAME)
@@ -80,7 +82,10 @@ $(COMPILER_LIB_NAME):\
 	echo "\n" >> $(COMPILER_LIB_NAME)
 	tail -n +3 core/src/RedeDest.c >> $(COMPILER_LIB_NAME)
 	echo "\n" >> $(COMPILER_LIB_NAME)
-	tail -n +6 core/src/RedeCompiler.c >> $(COMPILER_LIB_NAME)
+	tail -n +3 core/headers/RedeCompilerHelpers.h >> $(COMPILER_LIB_NAME)
+	echo "\n" >> $(COMPILER_LIB_NAME)
+	$(foreach helper, $(wildcard core/src/compiler-helpers/*.c), tail -n +7 $(helper) >> $(COMPILER_LIB_NAME); echo "\n" >> $(COMPILER_LIB_NAME);)
+	tail -n +7 core/src/RedeCompiler.c >> $(COMPILER_LIB_NAME)
 	echo "\n#endif // REDE_COMPILER_IMPLEMENTATION" >> $(COMPILER_LIB_NAME)
 
 

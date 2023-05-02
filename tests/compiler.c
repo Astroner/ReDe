@@ -6,7 +6,7 @@
 #define REDE_COMPILER_IMPLEMENTATION
 #include "../RedeCompiler.h"
 
-#define MATCH(result, ...)\
+#define BUFFER_MATCH(result, ...)\
     {\
         unsigned char buffer[] = { __VA_ARGS__ };\
         for(size_t i = 0; i < sizeof(buffer); i++) {\
@@ -17,20 +17,23 @@
         }\
     }\
 
+#define MATCH(code, ...)\
+    do {\
+        Rede_createStringSource(src, code);\
+        Rede_createCompilationMemory(memory, 100);\
+        Rede_createBufferDest(dest, 256);\
+        assert(Rede_compile(src, memory, dest) == 0);\
+        BUFFER_MATCH(\
+            dest->data.buffer.buffer,\
+            __VA_ARGS__\
+        );\
+    } while(0);\
+
 void compilesAssignment() {
-    Rede_createStringSource(src,
-        "a = 2\n"
-        "b = 'hi!'"
-    );
-
-    Rede_createCompilationMemory(memory, 100);
-
-    Rede_createBufferDest(dest, 256);
-
-    assert(Rede_compile(src, memory, dest) == 0);
-
     MATCH(
-        dest->data.buffer.buffer,
+        "a = 2\n"
+        "b = 'hi!'",
+
         REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
         REDE_CODE_END
@@ -38,20 +41,11 @@ void compilesAssignment() {
 }
 
 void compilesFunctionCalls() {
-    Rede_createStringSource(src,
+    MATCH(
         "a = random(   )\n"
         "b = random()\n"
-        "log( a   2  )"
-    );
+        "log( a   2  )",
 
-    Rede_createCompilationMemory(memory, 100);
-
-    Rede_createBufferDest(dest, 256);
-
-    assert(Rede_compile(src, memory, dest) == 0);
-
-    MATCH(
-        dest->data.buffer.buffer,
         REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
         REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
         REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
@@ -65,18 +59,9 @@ void compilesFunctionCalls() {
 }
 
 void compilesFunctionCallsInsideOfFunctionCalls() {
-    Rede_createStringSource(src,
-        "log(sum(2   2)   length('kekW'))"
-    );
-
-    Rede_createCompilationMemory(memory, 100);
-
-    Rede_createBufferDest(dest, 256);
-
-    assert(Rede_compile(src, memory, dest) == 0);
-
     MATCH(
-        dest->data.buffer.buffer,
+        "log(sum(2   2)   length('kekW'))",
+
         REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_CALL, 3, 's', 'u', 'm', 2,
@@ -97,7 +82,7 @@ void compilesFromFileSource() {
 
     assert(Rede_compile(src, memory, dest) == 0);
 
-    MATCH(
+    BUFFER_MATCH(
         dest->data.buffer.buffer,
         REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
         REDE_CODE_ASSIGN, 1, REDE_TYPE_STRING, 3, 'h', 'i', '!',
@@ -154,6 +139,31 @@ void compilerIntoFile() {
     fclose(f);
 }
 
+void compilesWhileLoops() {
+    MATCH(
+        "a = 0 "
+        "while not(eq(a, 10)) ("
+            "log(a) "
+            "a = incr(a)"
+        ")",
+
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 32, 65,
+        REDE_CODE_CALL, 2, 'e', 'q', 2,
+        REDE_CODE_CALL, 3, 'n', 'o', 't', 1,
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 27, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+        REDE_CODE_STACK_CLEAR,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+        REDE_CODE_CALL, 4, 'i', 'n', 'c', 'r', 1,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 50, 0,
+        REDE_CODE_END
+    )
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
@@ -161,7 +171,8 @@ int main() {
     TEST(compilesFunctionCallsInsideOfFunctionCalls);
     TEST(compilesFromFileSource);
     TEST(compilerIntoFile);
-    
+    TEST(compilesWhileLoops);
+
     printf("\n");
     return 0;
 }

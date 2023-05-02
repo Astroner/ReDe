@@ -11,8 +11,11 @@
 int main(void) {
     Rede_createStringSource(
         code,
-        "a = 23 "
-        "log(a  even(a))"
+        "a = 0 "
+        "while not(eq(a, 10)) ("
+            "log(a) "
+            "a = incr(a)"
+        ")"
     );
 
     Rede_createCompilationMemory(memory, 256);
@@ -21,7 +24,6 @@ int main(void) {
 
     int status = Rede_compile(code, memory, dest);
 
-    if(status < 0) return 1;
     printf("\nCode:\n");
     if(dest->type == RedeDestTypeFile) {
         FILE* f = fopen("main.rd", "rb");
@@ -39,10 +41,28 @@ int main(void) {
         }
         printf("\n");
     }
+    if(status < 0) return 1;
 
     printf("\nExecution: \n");
 
     Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
+
+    // Rede_createByteCode(bytes,
+    //     REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,
+    //     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+    //     REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 32, 65,
+    //     REDE_CODE_CALL, 2, 'e', 'q', 2,
+    //     REDE_CODE_CALL, 3, 'n', 'o', 't', 1,
+    //     REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 27, 0,
+    //     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+    //     REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+    //     REDE_CODE_STACK_CLEAR,
+    //     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
+    //     REDE_CODE_CALL, 4, 'i', 'n', 'c', 'r', 1,
+    //     REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
+    //     REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 50, 0,
+    //     REDE_CODE_END
+    // )
 
     Rede_createRuntimeMemory(runtime, 256, 256, 256);
 

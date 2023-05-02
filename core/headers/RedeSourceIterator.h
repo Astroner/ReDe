@@ -1,3 +1,5 @@
+#include "RedeCompiler.h"
+
 #include <stdio.h>
 
 #if !defined(REDE_SOURCE_ITERATOR)
