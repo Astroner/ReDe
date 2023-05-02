@@ -195,6 +195,7 @@ In general you can thing about the jump length as the number of bytes between st
 
 if we have a list of numbers:
 > 1 2 3 4 5 6 7 8 9
+
 and we want to jump from 1 to 9 we need to pass 7 numbers and it also work in the reversed direction: we need to pass 7 numbers to jump from 9 to 1.
 
 ### End
