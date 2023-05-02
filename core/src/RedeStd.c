@@ -110,7 +110,7 @@ static int Rede_std_eq(const RedeFunctionArgs* args, RedeVariable* result) {
         return 0;
     }
     
-    for(size_t i = 1; i < args->length; i++) {
+    for(int i = 1; i < args->length; i++) {
         if(args->values[i - 1].data.number != args->values[i].data.number) {
             Rede_setBoolean(result, 0);
             return 0;
@@ -129,10 +129,13 @@ static int Rede_std_bool(const RedeFunctionArgs* args, RedeVariable* result) {
         case RedeVariableTypeString:
             // Counting with NULL-terminator
             Rede_setBoolean(result, args->values->data.string.length > 1);
+            break;
         case RedeVariableTypeNumber:
             Rede_setBoolean(result, args->values->data.number != 0);
+            break;
         case RedeVariableTypeBoolean:
             Rede_setBoolean(result, args->values->data.boolean);
+            break;
     }
     return 0;
 }
