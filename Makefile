@@ -24,6 +24,7 @@ GENERAL_LIB_NAME=Rede.h
 cli: $(CLI_EXECUTABLE)
 	$(CLI_EXECUTABLE) $(EFLAGS)
 
+.PHONY: cli
 build-cli: $(CLI_EXECUTABLE)
 	echo "Done"
 
