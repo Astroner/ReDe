@@ -17,12 +17,12 @@
      - add **--compile** or **-c** flag to compile provided *.rede* file into *.rd* file. ```rede -c main.rede``` or ```rede --compile main.rede```
      - add **.rd** filename after compile flag to specify the output. ```rede --compile=main.rd main.rede``` or ```rede --compile main.rd main.rede```
  - [x] Implement CLI **--help** and **-h** flags to provide information - ```rede --help``` or ```rede -h```
- - [ ] Implement new bytecode instructions
+ - [x] Implement new bytecode instructions
      - [x] Update Bytecode spec:
          - [x] Add booleans
          - [x] Add REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT for code navigation
      - [x] Implement booleans
-     - [ ] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
+     - [x] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
  - [ ] Implement new language features
      - [ ] Implement booleans
      - [ ] Implement if-cases

@@ -24,7 +24,8 @@
          - [End](#end)
      - [Example programs](#example-programs)
          - [Sum of 2 numbers](#sum-of-2-numbers)
-         - [Loop](#iterate-over-numbers-from-0-to-9-and-call-function-a-on-evens-and-b-on-odds)
+         - [Simple if-condition](#simple-if-condition)
+         - [Loop](#loop)
  - [Refs]($refs)
 
 # Byte code instructions
@@ -223,27 +224,54 @@ unsigned char program[] = {
     REDE_CODE_END                                           // end the program
 };
 ```
-### Iterate over numbers from 0 to 9 and call function a() on evens and b() on odds
+
+### Simple if-condition
+The program prints "true" if variable "0" is reducible to true, and prints "false" if it is not
 ```c
 unsigned char program[] = {
-    REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,                          // 1.  Initialize variable 0 as counter
-    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                     // 2.  Put it on the stack
-    REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 32, 65,                       // 3.  Put 10 on the stack
-    REDE_CODE_CALL, 7, 'i', 's', 'E', 'q', 'u', 'a', 'l', 2,                    // 4.  Call function "isEqual"
-    REDE_CODE_JUMP_IF, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 51, 0,          // 5.  If isEqual returned "true" on the stack, then skip 51 bytes after the instruction end (To point 18)
-    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                     // 6.  Put value from 0 on the stack
-    REDE_CODE_CALL, 4, 'e', 'v', 'e', 'n', 1,                                   // 7.  Call function "even"
-    REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 9, 0,       // 8.  If returned value is not true skip 9 next bytes after the instruction end (To point 12)
-    REDE_CODE_CALL, 1, 'a', 0,                                                  // 9.  Call function a
-    REDE_CODE_STACK_CLEAR,                                                      // 10. Clear the stack after the function call
-    REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 5, 0,                               // 11. Skip 5 next bytes after the instruction end (To point 14)
-    REDE_CODE_CALL, 1, 'b', 0,                                                  // 12. Call function b
-    REDE_CODE_STACK_CLEAR,                                                      // 13. Clear the stack after the function call
-    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                     // 14. Put value from variable 0 on the stack 
-    REDE_CODE_CALL, 9, 'i', 'n', 'c', 'r', 'e', 'm', 'e', 'n', 't', 1,          // 15. Call function increment
-    REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,                                       // 16. Assign returned value to variable 0
-    REDE_CODE_JUMP, REDE_DIRECTION_BACKWARDS, 73, 0,                            // 17. Jump 73 bytes back (To point 2)
-    REDE_CODE_END                                                               // 18. End the program
+    REDE_CODE_ASSIGN, 0, REDE_TYPE_BOOL, 1,                                         // 1.  Assign variable 0 to true (condition)
+    REDE_CODE_JUMP_IF_NOT, REDE_TYPE_VAR, 0, REDE_DIRECTION_FORWARD, 0x12, 0x00,    // 2.  Jump 18 bytes from the end of the instruct if variable 0 is reducible to false (Line 7)
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 4, 't', 'r', 'u', 'e',                  // 3.  Put string "true" on the stack
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,                                            // 4.  Call function log
+    REDE_CODE_STACK_CLEAR,                                                          // 5.  Clear the stack
+    REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 0x0F, 0x00,                             // 6.  Jump 15 bytes from the end of the instruction(Line 10)
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 5, 'f', 'a', 'l', 's', 'e',             // 7.  Put string "false" on the stack
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,                                            // 8.  Call function log
+    REDE_CODE_STACK_CLEAR,                                                          // 9.  Clear the stack
+    REDE_CODE_END                                                                   // 10. End the program
+};
+```
+
+### Loop
+This program iterates over numbers from 0 to 10 and prints "even" for evens and "odd" for odds
+```c
+unsigned char program[] = {
+    REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,                              // 1.  Assign 0 to variable 0. Initializing the counter
+                                                                                    // 2.  
+    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                         // 3.  Put value from variable 0 on the stack
+    REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 32, 65,                           // 4.  Put 10 on the stack
+    REDE_CODE_CALL, 2, 'e', 'q', 2,                                                 // 5.  Call function eq to check if the provided values are equal
+                                                                                    // 6. 
+    REDE_CODE_JUMP_IF, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 59, 0,              // 7.  Jump 59 bytes forward if values are equal (Line 26)
+    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                         // 8.  Put value from variable 0 on the stack 
+                                                                                    // 9.
+    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                         // 10. Put value from variable 0 on the stack 
+    REDE_CODE_CALL, 4, 'e', 'v', 'e', 'n', 1,                                       // 11. Call function "even" to check that the value is even
+                                                                                    // 12.
+    REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 11, 0,          // 13. If it is not even, then jump forward 11 instructions (Line 16)
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 4, 'e', 'v', 'e', 'n',                  // 14. Put string "even" on the stack
+    REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 6, 0,                                   // 15. Jump forward 6 instructions (Line 18)
+    REDE_CODE_STACK_PUSH, REDE_TYPE_STRING, 3, 'o', 'd', 'd',                       // 16. Put string "odd" on the stack
+                                                                                    // 17.
+    REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,                                            // 18. Call function "log" with 2 arguments
+    REDE_CODE_STACK_CLEAR,                                                          // 19. Clear the stack
+                                                                                    // 20. 
+    REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                         // 21. Put value from variable 0 on the stack
+    REDE_CODE_CALL, 4, 'i', 'n', 'c', 'r', 1,                                       // 22. Call function "incr" to get provided value incremented by 1
+    REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,                                           // 23. and assign it to variable 0
+                                                                                    // 24.
+    REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 76, 0,                                 // 25. Jump backward 76 instructions to the beginning of the loop (Line 3)
+    REDE_CODE_END                                                                   // 26. End the program
 };
 ```
 

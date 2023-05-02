@@ -263,6 +263,33 @@ static int parseDestination(RedeByteIterator* bytes) {
     return result;
 }
 
+static int reduceToBoolean(RedeVariable* var) {
+    switch(var->type) {
+        case RedeVariableTypeString:
+            // Counting with NULL-terminator
+            return var->data.string.length > 1;
+        case RedeVariableTypeNumber:
+            return var->data.number != 0;
+        case RedeVariableTypeBoolean:
+            return var->data.boolean;
+    }
+    return 0;
+}
+
+static int conditionalJump(RedeByteIterator* iterator, RedeRuntimeMemory* memory, int reversedCondition) {
+    RedeVariable condition;
+    setVariable(iterator, memory, &condition);
+    int value = reduceToBoolean(&condition);
+    int shift = parseDestination(iterator);
+    if(value && !reversedCondition) {
+        RedeByteIterator_moveCursor(iterator, shift);
+    } else if(!value && reversedCondition) {
+        RedeByteIterator_moveCursor(iterator, shift);
+    }
+
+    return 0;
+}
+
 #define EXIT_EXECUTION(code)\
     executionCode = code;\
     goto exit_execution;\
@@ -287,21 +314,34 @@ int Rede_execute(
             case REDE_CODE_ASSIGN:
                 status = assignVariable(&iterator, memory);
                 break;
+
             case REDE_CODE_STACK_PUSH:
                 status = putOnStack(&iterator, memory);
                 break;
+
             case REDE_CODE_CALL:
                 status = functionCall(&iterator, memory, funcCall, sharedData);
                 break;
+
             case REDE_CODE_JUMP: {
                 int shift = parseDestination(&iterator);
                 RedeByteIterator_moveCursor(&iterator, shift);
                 status = 0;
                 break;
             }
+
+            case REDE_CODE_JUMP_IF: 
+                status = conditionalJump(&iterator, memory, 0);
+                break;
+
+            case REDE_CODE_JUMP_IF_NOT: 
+                status = conditionalJump(&iterator, memory, 1);
+                break;
+
             case REDE_CODE_STACK_CLEAR:
                 memory->stackActualSize = 0;
                 break;
+
             default:
                 printf("Unknown statement %d\n", code);
                 EXIT_EXECUTION(-1);
