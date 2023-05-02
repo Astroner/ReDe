@@ -12,6 +12,7 @@ Rede simply consists of 4 things:
  - variables
  - numbers
  - strings
+ - booleans
  - functions
 
 ## Variables
@@ -20,6 +21,8 @@ To define a variable just write its name and assign a value to it:
 numberVariable = 33
 stringVariable = "Hi!"
 anotherStringVariable = 'Hello!'
+truthy = true
+falsy = false
 ```
 
 ## Functions
