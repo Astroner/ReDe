@@ -37,14 +37,14 @@ Syntax:
 ### Number
 Represents 4-byte float.
 
-**REDE_TYPE_NUMBER    VALUE**
+**REDE_TYPE_NUMBER....VALUE**
  - **REDE_TYPE_NUMBER** - **1 byte** - **0x00**
  - **VALUE** - **4 bytes** - float number in standard C format
 
 ### String
 Represents string with max length of 255.
 
-**REDE_TYPE_STRING    STRING_LENGTH    STRING_VALUE**
+**REDE_TYPE_STRING....STRING_LENGTH....STRING_VALUE**
  - **REDE_TYPE_STRING** - **1 byte** - **0x01**
  - **STRING_LENGTH** - **1 byte** - length of the string
  - **STRING_VALUE** - **STRING_LENGTH bytes** - string bytes in ASCII format
@@ -52,7 +52,7 @@ Represents string with max length of 255.
 ### Variable
 Represents value of variable
 
-**REDE_TYPE_VAR    VARIABLE_NAME**
+**REDE_TYPE_VAR....VARIABLE_NAME**
  - **REDE_TYPE_VAR** - **1 byte** - **0x02**
  - **VARIABLE_NAME** - **1 byte** - variable name
 
@@ -65,20 +65,20 @@ Represents value of the last stack item
 ### Boolean
 Represents boolean value
 
-**REDE_TYPE_BOOL    VALUE**
+**REDE_TYPE_BOOL....VALUE**
  - **REDE_TYPE_BOOL** - **1 byte** - **0x04**
  - **VALUE** - **1 byte** - **0x00** for false everything else for true
 
 ## Instructions
 ### General syntax
-**REDE_CODE    ...ARGS**
+**REDE_CODE....ARGS**
  - **REDE_CODE** - **1 byte** - instruction code
  - **...ARGS** - various args for specific instruction
 
 ### Assign
 Assigns data to variable
 
-**REDE_CODE_ASSIGN NAME    REDE_TYPE**
+**REDE_CODE_ASSIGN NAME....REDE_TYPE**
  - **REDE_CODE_ASSIGN** - **0x00**
  - **NAME** - **1 byte** - range from **0x00** to **0xFF**
  - **REDE_TYPE** - data in one of the formats described [here](#data-types)
@@ -86,7 +86,7 @@ Assigns data to variable
 ### Push on stack
 Pushes value on the stack
 
-**REDE_CODE_STACK_PUSH    REDE_TYPE**
+**REDE_CODE_STACK_PUSH....REDE_TYPE**
  - **REDE_CODE_STACK_PUSH** - **0x01**
  - **REDE_TYPE** - data in one of the formats described [here](#data-types)
 
@@ -95,7 +95,7 @@ Calls function with specified name and number of arguments from the stack.
 
 Arguments will be taken from the stack and the result will be pushed to the stack.
 
-**REDE_CODE_CALL    FUNCTION_NAME    ARGUMENTS_NUMBER**
+**REDE_CODE_CALL....FUNCTION_NAME....ARGUMENTS_NUMBER**
  - **REDE_CODE_CALL** - **0x02**
  - **FUNCTION_NAME** - **REDE_TYPE_STRING** - function name in format of [ReDe string](#string)
  - **ARGUMENTS_NUMBER** - **1 byte** - number of arguments
@@ -128,7 +128,7 @@ If the provided type is a stack type, then the described rules are applied to th
 #### Jump destination
 Represents a relative cursor move.
 
-**DIRECTION    CURSOR_MOVE**
+**DIRECTION....CURSOR_MOVE**
  - **DIRECTION** - **1 byte** - **0x00** to move forward and anything else to move backwards
      - **REDE_DIRECTION_FORWARD** - **0x00**
      - **REDE_DIRECTION_BACKWARDS** - **0x01**
@@ -139,14 +139,14 @@ Represents a relative cursor move.
 #### REDE_CODE_JUMP
 Move program cursor
 
-**REDE_CODE_JUMP    JUMP_DESTINATION**
+**REDE_CODE_JUMP....JUMP_DESTINATION**
  - **REDE_CODE_JUMP** - **0x04**
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
 
 #### REDE_CODE_JUMP_IF
 Move program cursor if the provided value is reducible to true.
 
-**REDE_CODE_JUMP_IF    REDE_TYPE    JUMP_DESTINATION**
+**REDE_CODE_JUMP_IF....REDE_TYPE....JUMP_DESTINATION**
  - **REDE_CODE_JUMP_IF** - **0x05**
  - **REDE_TYPE** - condition value in one of the formats described [here](#data-types)
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
@@ -154,7 +154,7 @@ Move program cursor if the provided value is reducible to true.
 #### REDE_CODE_JUMP_IF_NOT
 Move program cursor if the provided value is reducible to false.
 
-**REDE_CODE_JUMP_IF_NOT    REDE_TYPE    JUMP_DESTINATION**
+**REDE_CODE_JUMP_IF_NOT....REDE_TYPE....JUMP_DESTINATION**
  - **REDE_CODE_JUMP_IF_NOT** - **0x06**
  - **REDE_TYPE** - condition value in one of the formats described [here](#data-types)
  - **JUMP_DESTINATION** - bytes in format of [Jump destination](#jump-destination)
@@ -232,7 +232,7 @@ unsigned char program[] = {
     REDE_CODE_JUMP_IF, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 51, 0,          // 5.  If isEqual returned "true" on the stack, then skip 51 bytes after the instruction end (To point 18)
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                     // 6.  Put value from 0 on the stack
     REDE_CODE_CALL, 4, 'e', 'v', 'e', 'n', 1,                                   // 7.  Call function "even"
-    REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 11, 0,      // 8.  If returned value is not true skip 11 next bytes after the instruction end (To point 12)
+    REDE_CODE_JUMP_IF_NOT, REDE_TYPE_STACK, REDE_DIRECTION_FORWARD, 9, 0,       // 8.  If returned value is not true skip 9 next bytes after the instruction end (To point 12)
     REDE_CODE_CALL, 1, 'a', 0,                                                  // 9.  Call function a
     REDE_CODE_STACK_CLEAR,                                                      // 10. Clear the stack after the function call
     REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 5, 0,                               // 11. Skip 5 next bytes after the instruction end (To point 14)
@@ -241,7 +241,7 @@ unsigned char program[] = {
     REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,                                     // 14. Put value from variable 0 on the stack 
     REDE_CODE_CALL, 9, 'i', 'n', 'c', 'r', 'e', 'm', 'e', 'n', 't', 1,          // 15. Call function increment
     REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,                                       // 16. Assign returned value to variable 0
-    REDE_CODE_JUMP, REDE_DIRECTION_BACKWARDS, 74, 0,                            // 17. Jump 74 bytes back (To point 2)
+    REDE_CODE_JUMP, REDE_DIRECTION_BACKWARDS, 73, 0,                            // 17. Jump 73 bytes back (To point 2)
     REDE_CODE_END                                                               // 18. End the program
 };
 ```
