@@ -17,6 +17,8 @@
 #define REDE_CODE_JUMP              0x04
 #define REDE_CODE_JUMP_IF           0x05
 #define REDE_CODE_JUMP_IF_NOT       0x06
+
+#define REDE_CODE_NOP               0xFE
 #define REDE_CODE_END               0xFF
 
 #endif // REDE_BYTE_CODES

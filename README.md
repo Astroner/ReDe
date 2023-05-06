@@ -8,7 +8,7 @@ This is a simple scripting language ReDe
 
 
 # Syntax
-Rede simply consists of 4 things:
+Rede simply consists of 5 things:
  - variables
  - numbers
  - strings

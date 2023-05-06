@@ -340,6 +340,11 @@ int Rede_execute(
 
             case REDE_CODE_STACK_CLEAR:
                 memory->stackActualSize = 0;
+                status = 0;
+                break;
+            
+            case REDE_CODE_NOP:
+                status = 0;
                 break;
 
             default:

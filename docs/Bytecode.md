@@ -17,10 +17,11 @@
          - [Jump](#jump)
              - [Reducible to "true" or "false"](#reducible-to-true-or-false)
              - [Jump destination](#jump-destination)
-             - [Cursor move behavior](#cursor-move-behavior)
              - [REDE_CODE_JUMP](#rede_code_jump)
              - [REDE_CODE_JUMP_IF](#rede_code_jump_if)
              - [REDE_CODE_JUMP_IF_NOT](#rede_code_jump_if_not)
+             - [Cursor move behavior](#cursor-move-behavior)
+         - [NOP](#nop)
          - [End](#end)
      - [Example programs](#example-programs)
          - [Sum of 2 numbers](#sum-of-2-numbers)
@@ -198,6 +199,12 @@ if we have a list of numbers:
 > 1 2 3 4 5 6 7 8 9
 
 and we want to jump from 1 to 9 we need to pass 7 numbers and it also work in the reversed direction: we need to pass 7 numbers to jump from 9 to 1.
+
+### NOP
+Do nothing
+
+**REDE_CODE_NOP**
+ - **REDE_CODE_NOP** - **0xFE**
 
 ### End
 Should be at the end of the program.
