@@ -4,6 +4,9 @@
 
 int RedeDest_init(RedeDest* dest) {
     LOGS_SCOPE(RedeDest_init);
+
+    dest->index = -1;
+
     switch(dest->type) {
         case RedeDestTypeFile: {
             dest->data.file.fp = fopen(dest->data.file.path, "wb");
@@ -33,11 +36,11 @@ void RedeDest_destroy(RedeDest* dest) {
 
 int RedeDest_writeByte(RedeDest* dest, unsigned char byte) {
 
+    dest->index++;
     switch(dest->type) {
         case RedeDestTypeBuffer:
-            if(dest->data.buffer.length != dest->data.buffer.maxLength) {
-                dest->data.buffer.buffer[dest->data.buffer.length] = byte;
-                dest->data.buffer.length++;
+            if(dest->index != dest->data.buffer.maxLength) {
+                dest->data.buffer.buffer[dest->index] = byte;
                 return 0;
             } else {
                 return -1;
@@ -55,21 +58,33 @@ int RedeDest_writeByte(RedeDest* dest, unsigned char byte) {
 }
 
 void RedeDest_moveCursorBack(RedeDest* dest, size_t n) {
-
-    switch(dest->type) {
-        case RedeDestTypeBuffer:
-            if(dest->data.buffer.length >= n) {
-                dest->data.buffer.length -= n;
-            } else {
-                dest->data.buffer.length = 0;
-            }
-            return;
-    
+    dest->index -= n;
+    switch(dest->type) {    
         case RedeDestTypeFile:
             fseek(dest->data.file.fp, -n, SEEK_CUR);
             return;
             
         default:
             return;
+    }
+}
+
+int RedeDest_writeByteAt(RedeDest* dest, size_t index, unsigned char byte) {
+    switch(dest->type) {    
+        case RedeDestTypeBuffer:
+            if(index >= dest->data.buffer.maxLength) return -1;
+            dest->data.buffer.buffer[index] = byte;
+            return 0;
+
+        case RedeDestTypeFile: 
+            fseek(dest->data.file.fp, index, SEEK_SET);
+            if(fputc(byte, dest->data.file.fp) != byte) {
+                return -1;
+            }
+            fseek(dest->data.file.fp, dest->index + 1, SEEK_SET);
+            return 0;
+            
+        default:
+            return -1;
     }
 }

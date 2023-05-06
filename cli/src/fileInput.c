@@ -16,7 +16,9 @@ void fileInput(Options* options) {
     Rede_createFileSource(src, options->file.path);
     Rede_createCompilationMemory(compilation, 256);
 
-    RedeDest dest;
+    RedeDest dest = {
+        .index = -1
+    };
     if(options->compile) {
         dest.type = RedeDestTypeFile;
         if(options->outPath) dest.data.file.path = options->outPath;
@@ -26,7 +28,6 @@ void fileInput(Options* options) {
         memset(buffer, 0, 1024);
         dest.type = RedeDestTypeBuffer;
         dest.data.buffer.buffer = buffer;
-        dest.data.buffer.length = 0;
         dest.data.buffer.maxLength = 1024;
     }
 

@@ -18,11 +18,11 @@ int RedeCompilerHelpers_writeFunctionCall(
     if(ctx->isAssignment && ctx->functionCallDepth == 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of assignment");
         RedeDest_moveCursorBack(dest, 2);
+    } else if(ctx->isWhileLoopArgument && ctx->functionCallDepth == 1) {
+        LOG_LN("Shifting the buffer cursor back because of function call as while-loop argument");
+        RedeDest_moveCursorBack(dest, 1);
     } else if(ctx->functionCallDepth > 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of function call");
-        RedeDest_moveCursorBack(dest, 1);
-    } else if(ctx->ifStatementDepth == 1 && ctx->functionCallDepth == 1) {
-        LOG_LN("Shifting the buffer cursor back because of function call inside of if-statement");
         RedeDest_moveCursorBack(dest, 1);
     }
 

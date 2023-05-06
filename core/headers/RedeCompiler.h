@@ -45,10 +45,10 @@ typedef enum RedeDestType {
 
 typedef struct RedeDest {
     RedeDestType type;
+    size_t index;
     union {
         struct {
             unsigned char* buffer;
-            size_t length;
             size_t maxLength;
         } buffer;
         struct {
@@ -63,10 +63,10 @@ typedef struct RedeDest {
     memset(name##__buffer, 0, sizeof(name##__buffer));\
     RedeDest name##__data = {\
         .type = RedeDestTypeBuffer,\
+        .index = -1,\
         .data = {\
             .buffer = {\
                 .buffer = name##__buffer,\
-                .length = 0,\
                 .maxLength = bufferLength,\
             }\
         }\
@@ -77,6 +77,7 @@ typedef struct RedeDest {
 #define Rede_createFileDest(name, filePath)\
     RedeDest name##__data = {\
         .type = RedeDestTypeFile,\
+        .index = -1,\
         .data = {\
             .file = {\
                 .path = filePath,\

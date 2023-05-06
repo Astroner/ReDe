@@ -9,24 +9,20 @@
 #include "RedeStd.h"
 
 int main(void) {
-    Rede_createStringSource(
+    Rede_createFileSource(
         code,
-        "a = 0 "
-        "while not(eq(a, 10)) ("
-            "log(a) "
-            "a = incr(a)"
-        ")"
+        "index.rede"
     );
 
     Rede_createCompilationMemory(memory, 256);
 
-    Rede_createBufferDest(dest, 1024);
+    // Rede_createBufferDest(dest, 1024);
+    Rede_createFileDest(dest, "index.rd");
 
     int status = Rede_compile(code, memory, dest);
-
     printf("\nCode:\n");
     if(dest->type == RedeDestTypeFile) {
-        FILE* f = fopen("main.rd", "rb");
+        FILE* f = fopen("index.rd", "rb");
 
         int ch;
         while((ch = getc(f)) != EOF) {
@@ -36,7 +32,7 @@ int main(void) {
         printf("\n");
         fclose(f);
     } else {
-        for(size_t i = 0; i < dest->data.buffer.length; i++) {
+        for(size_t i = 0; i <= dest->index; i++) {
             printf("%d ", dest->data.buffer.buffer[i]);
         }
         printf("\n");
@@ -45,7 +41,8 @@ int main(void) {
 
     printf("\nExecution: \n");
 
-    Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
+    // Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
+    Rede_createByteCodeFromFile(bytes, "index.rd");
 
     // Rede_createByteCode(bytes,
     //     REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,

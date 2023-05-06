@@ -48,5 +48,5 @@ int RedeCompilerHelpers_writeAssignment(
     }
 
     ctx->isAssignment = 0;
-    return 0;
+    return status;
 }

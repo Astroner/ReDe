@@ -50,7 +50,13 @@ int RedeCompilerHelpers_writeFloat(
         } else if(ch == '.' && !floatingPoint) {
             LOG_LN("Floating point");
             floatingPoint = 1;
-        } else if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
+        } else if(
+            ch == ' ' || ch == '\n' || ch == '\r' 
+            || 
+            (ctx->functionCallDepth > 0 && ch == ')')
+            ||
+            (ctx->whileLoopBodyDepth > 0 && ch == ')')
+        ) {
             break;
         } else {
             LOG_LN("Unexpected character");

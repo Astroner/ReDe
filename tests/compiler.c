@@ -142,7 +142,7 @@ void compilerIntoFile() {
 void compilesWhileLoops() {
     MATCH(
         "a = 0 "
-        "while not(eq(a, 10)) ("
+        "while not(eq(a  10)) ("
             "log(a) "
             "a = incr(a)"
         ")",

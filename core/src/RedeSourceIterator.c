@@ -83,3 +83,23 @@ char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index) {
 char RedeSourceIterator_current(RedeSourceIterator* iterator) {
     return iterator->current;
 }
+
+void RedeSourceIterator_moveCursorBack(RedeSourceIterator* iterator, size_t shift) {
+    iterator->index -= shift;
+    
+    switch(iterator->type) {
+        case RedeSourceIteratorTypeString: 
+            iterator->current = iterator->data.string[iterator->index];
+            break;
+
+        case RedeSourceIteratorTypeFile:
+            fseek(iterator->data.file.fp, iterator->index, SEEK_SET);
+            iterator->current = getc(iterator->data.file.fp);
+            fseek(iterator->data.file.fp, -1, SEEK_CUR);
+            break;
+
+        default:
+            fprintf(stderr, "Unknown iterator type\n");
+            exit(1);
+    }
+}

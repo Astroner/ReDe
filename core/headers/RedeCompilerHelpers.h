@@ -10,6 +10,8 @@ typedef struct RedeCompilationContext {
     int functionCallDepth;
     int isAssignment;
     int ifStatementDepth;
+    int isWhileLoopArgument;
+    int whileLoopBodyDepth;
 } RedeCompilationContext;
 
 int RedeCompilerHelpers_writeFloat(
@@ -59,5 +61,11 @@ unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t iden
 int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator);
 
 int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest);
+
+int RedeCompilerHelpers_writeStatements(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+int RedeCompilerHelpers_writeStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+int RedeCompilerHelpers_writeWhile(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
 #endif // REDE_COMPILER_HELPERS

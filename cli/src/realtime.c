@@ -98,6 +98,6 @@ void realtime() {
     
 loop_end:
         memset(buffer, 0, MAX_LINE_WIDTH);
-        dest->data.buffer.length = 0;
+        dest->index = -1;
     }
 }

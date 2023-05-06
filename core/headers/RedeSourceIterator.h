@@ -29,5 +29,6 @@ void RedeSourceIterator_destroy(RedeSourceIterator* iterator);
 char RedeSourceIterator_nextChar(RedeSourceIterator* iterator);
 char RedeSourceIterator_charAt(RedeSourceIterator* iterator, size_t index);
 char RedeSourceIterator_current(RedeSourceIterator* iterator);
+void RedeSourceIterator_moveCursorBack(RedeSourceIterator* iterator, size_t shift);
 
 #endif // REDE_SOURCE_ITERATOR

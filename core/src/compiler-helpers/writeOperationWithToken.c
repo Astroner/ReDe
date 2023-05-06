@@ -20,8 +20,20 @@ int RedeCompilerHelpers_writeOperationWithToken(
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
-        if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->functionCallDepth > 0 && ch == ')')) {
-            LOG_LN("Function call depth: %d", ctx->functionCallDepth);
+        if(
+            ch == ' ' || ch == '\n' || ch == '\r' 
+            || 
+            (ctx->functionCallDepth > 0 && ch == ')')
+            ||
+            (ctx->whileLoopBodyDepth > 0 && ch == ')')
+        ) {
+            LOGS_ONLY(
+                if(ctx->functionCallDepth > 0 && ch == ')') {
+                    LOG_LN("Token cut byt ')' token at the end of the function call");
+                } else if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
+                    LOG_LN("Token cut byt ')' token at the end of the while-loop body");
+                }
+            );
 
             if(RedeCompilerHelpers_isToken("true", identifierStart, identifierLength, iterator)) {
                 LOG_LN("Boolean value 'true'");
