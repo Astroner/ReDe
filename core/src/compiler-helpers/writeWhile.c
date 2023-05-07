@@ -12,12 +12,26 @@ int RedeCompilerHelpers_writeWhile(
     RedeCompilationContext* ctx
 ) {
     LOGS_SCOPE(writeWhile);
+    RedeCompilationContextWhileLoop currentLoop = {
+        .breakRequired = 0
+    };
 
-    ctx->isWhileLoopArgument = 1;
+    size_t preBreakJumpStart;
+
+    for(int i = 0; i < 8; i++) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_NOP), 0, "Failed write placeholder nop at index %d", i);
+        if(i == 0) {
+            preBreakJumpStart = dest->index;
+        } else if(i == 4) {
+            currentLoop.breakJumpStart = dest->index;
+        }
+    }
 
     CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT");
 
-    size_t loopStart = dest->index;
+    currentLoop.loopStart = dest->index;
+
+    ctx->isWhileLoopArgument = 1;
 
     int expressionStatus = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
     CHECK(expressionStatus, 0, "Failed to write condition");
@@ -35,6 +49,12 @@ int RedeCompilerHelpers_writeWhile(
     size_t jumpSizeStart = dest->index;
 
     CHECK(RedeDest_writeByte(dest, 0), 0, "Failed to write the second byte of jump size");
+
+
+    RedeCompilationContextWhileLoop* prevCtx = ctx->whileLoopCtx;
+
+    ctx->whileLoopCtx = &currentLoop;
+
 
     char ch;
     while((ch = RedeSourceIterator_nextChar(iterator))) {
@@ -59,7 +79,7 @@ int RedeCompilerHelpers_writeWhile(
             CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP");
             CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), 0, "Failed to write REDE_DIRECTION_BACKWARD");
 
-            size_t bytesDiff = dest->index - loopStart + 1;
+            size_t bytesDiff = dest->index - currentLoop.loopStart + 1;
             if(bytesDiff > 0xFFFF) {
                 LOG_LN("The loop is to big to jump backward");
                 return -1;
@@ -74,16 +94,40 @@ int RedeCompilerHelpers_writeWhile(
 
             bytesDiff = dest->index - jumpSizeStart - 1;
 
+            LOG_LN("Forward jump length: %zu", bytesDiff);
+
             if(bytesDiff > 0xFFFF) {
                 LOG_LN("The loop is to big to jump forward");
                 return -1;
             }
 
-            bytes = (unsigned char*)&bytesDiff;
-
             CHECK(RedeDest_writeByteAt(dest, jumpSizeStart, bytes[0]), 0, "Failed to write the first byte of the forward jump");
             CHECK(RedeDest_writeByteAt(dest, jumpSizeStart + 1, bytes[1]), 0, "Failed to write the second byte of the forward jump");
 
+            ctx->whileLoopCtx = prevCtx;
+
+            if(currentLoop.breakRequired) {
+                LOG_LN("Break required");
+
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 0, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 1, REDE_DIRECTION_FORWARD), 0, "Failed to write REDE_DIRECTION_FORWARD for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 2, 4), 0, "Failed to write first destination byte for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 3, 0), 0, "Failed to write second destination byte for break");
+
+                bytesDiff = dest->index - preBreakJumpStart - 7;
+
+                LOG_LN("Break jump length: %zu", bytesDiff);
+
+                if(bytesDiff > 0xFFFF) {
+                    LOG_LN("The loop is to big to jump forward");
+                    return -1;
+                }
+
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 4, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 5, REDE_DIRECTION_FORWARD), 0, "Failed to write REDE_DIRECTION_FORWARD for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 6, bytes[0]), 0, "Failed to write first destination byte for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 7, bytes[1]), 0, "Failed to write second destination byte for break itself");
+            }
 
             return 0;
         } else if(ch != ' ' && ch != '\n' && ch != '\r') {

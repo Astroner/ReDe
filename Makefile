@@ -49,7 +49,7 @@ $(CORE_OBJECTS): %.o: %.c
 
 
 # Builds runtime STB-like lib
-$(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h core/headers/RedeByteCodes.h core/src/RedeRuntime.c
+$(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h core/headers/RedeByteCodes.h core/src/RedeRuntime.c core/src/RedeRuntimeUtils.c
 	cat core/headers/RedeRuntime.h > $(RUNTIME_LIB_NAME)
 	tail -n +2 core/headers/RedeRuntimeUtils.h >> $(RUNTIME_LIB_NAME)
 	echo "\n#if defined(REDE_RUNTIME_IMPLEMENTATION)" >> $(RUNTIME_LIB_NAME)

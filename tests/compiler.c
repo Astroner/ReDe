@@ -139,7 +139,7 @@ void compilerIntoFile() {
     fclose(f);
 }
 
-void compilesWhileLoops() {
+void compilesSimpleWhileLoops() {
     MATCH(
         "a = 0 "
         "while not(eq(a  10)) ("
@@ -148,6 +148,8 @@ void compilesWhileLoops() {
         ")",
 
         REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,
+        REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP,
+        REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP,
         REDE_CODE_STACK_PUSH, REDE_TYPE_VAR, 0,
         REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 32, 65,
         REDE_CODE_CALL, 2, 'e', 'q', 2,
@@ -164,6 +166,44 @@ void compilesWhileLoops() {
     )
 }
 
+void compilesBreakWhileLoop() {
+    MATCH(
+        "while true ("
+            "log(2) "
+            "break"
+        ")",
+
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 4, 0,
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 27, 0,
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 21, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+        REDE_CODE_STACK_CLEAR, 
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 25, 0,
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 25, 0,
+        REDE_CODE_END
+    )
+}
+
+void compilesContinueWhileLoop() {
+    MATCH(
+        "while true ("
+            "continue "
+            "log(2)"
+        ")",
+        
+        REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP,
+        REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP, REDE_CODE_NOP,
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 21, 0,
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 8, 0,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 1,
+        REDE_CODE_STACK_CLEAR, 
+        REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 25, 0,
+        REDE_CODE_END
+    )
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
@@ -171,7 +211,9 @@ int main() {
     TEST(compilesFunctionCallsInsideOfFunctionCalls);
     TEST(compilesFromFileSource);
     TEST(compilerIntoFile);
-    TEST(compilesWhileLoops);
+    TEST(compilesSimpleWhileLoops);
+    TEST(compilesBreakWhileLoop);
+    TEST(compilesContinueWhileLoop);
 
     printf("\n");
     return 0;

@@ -6,12 +6,19 @@
 #if !defined(REDE_COMPILER_HELPERS)
 #define REDE_COMPILER_HELPERS
 
+typedef struct RedeCompilationContextWhileLoop {
+    size_t loopStart;
+    size_t breakJumpStart;
+    int breakRequired;
+} RedeCompilationContextWhileLoop;
+
 typedef struct RedeCompilationContext {
     int functionCallDepth;
     int isAssignment;
     int ifStatementDepth;
     int isWhileLoopArgument;
     int whileLoopBodyDepth;
+    RedeCompilationContextWhileLoop* whileLoopCtx;
 } RedeCompilationContext;
 
 int RedeCompilerHelpers_writeFloat(
@@ -67,5 +74,9 @@ int RedeCompilerHelpers_writeStatements(RedeSourceIterator* iterator, RedeCompil
 int RedeCompilerHelpers_writeStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
 int RedeCompilerHelpers_writeWhile(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+int RedeCompilerHelpers_writeContinue(RedeDest* dest, RedeCompilationContext* ctx);
+
+int RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationContext* ctx);
 
 #endif // REDE_COMPILER_HELPERS

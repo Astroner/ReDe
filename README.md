@@ -5,15 +5,14 @@ This is a simple scripting language ReDe
  - [Syntax](#syntax)
      - [Variables](#variables)
      - [Functions](#functions)
+     - [While-loop](#while-loop)
 
 
 # Syntax
-Rede simply consists of 5 things:
+Rede simply consists of 3 things:
  - variables
- - numbers
- - strings
- - booleans
  - functions
+ - while loops
 
 ## Variables
 To define a variable just write its name and assign a value to it:
@@ -37,3 +36,19 @@ log(   2222    3
 4  5
 )
 ```
+
+## While loop
+Simple conditional loop:
+```ts
+counter = 0
+while not(eq(counter 10)) (
+    log(counter)
+    counter = incr(counter)
+)
+```
+The condition goes right after while keyword and after it goes while body. 
+It can be wrapped by brackets if you have multiple statements or can be just one statement
+
+ReDe provides "break" and "continue" keywords to control loop flow:
+ - break - breaks the loop
+ - continue - proceeds to the next iteration

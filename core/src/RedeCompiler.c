@@ -23,7 +23,8 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
         .functionCallDepth = 0,
         .ifStatementDepth = 0,
         .isWhileLoopArgument = 0,
-        .whileLoopBodyDepth = 0
+        .whileLoopBodyDepth = 0,
+        .whileLoopCtx = NULL
     };
 
     RedeSourceIterator iterator;

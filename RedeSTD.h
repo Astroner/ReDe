@@ -1,4 +1,17 @@
-#include "RedeStd.h"
+#if !defined(REDE_RUNTIME_PATH)
+#define REDE_RUNTIME_PATH "RedeRuntime.h"
+#endif // REDE_RUNTIME_PATH
+
+#include REDE_RUNTIME_PATH
+
+#if !defined(REDE_STD_H)
+#define REDE_STD_H
+
+int Rede_std(const char* name, size_t nameLength, const RedeFunctionArgs* args, RedeVariable* result, void* sharedData);
+
+#endif // REDE_STD_H
+
+#if defined(REDE_STD_IMPLEMENTATION)
 
 #include <string.h>
 
@@ -187,3 +200,4 @@ int Rede_std(
 
     return function.call(args, result);
 }
+#endif // REDE_STD_IMPLEMENTATION

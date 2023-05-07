@@ -23,13 +23,20 @@ unsigned long RedeCompilerHelpers_hash(
 }
 
 int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
-    for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
-        char checkCh = token[i - identifierStart];
-        if(checkCh == '\n') return 0;
-        if(checkCh != RedeSourceIterator_charAt(iterator, i)) return 0;
-    }
 
-    return 1;
+    size_t i = 0;
+    while(1) {
+        if(i == identifierLength) {
+            return token[i] == '\0';
+        }
+
+        char tokenChar = token[i];
+        char strChar = RedeSourceIterator_charAt(iterator, identifierStart + i);
+        
+        if(tokenChar == '\0' || tokenChar != strChar) return 0;
+        
+        i++;
+    }
 }
 
 int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {

@@ -1,6 +1,234 @@
-#include "RedeRuntime.h"
-#include "RedeByteCodes.h"
+#if !defined(REDE_RUNTIME_H)
+#define REDE_RUNTIME_H
 
+#include <stdio.h>
+#include <string.h>
+
+
+typedef enum RedeByteCodeType {
+    RedeByteCodeTypeFile,
+    RedeByteCodeTypeBuffer,
+} RedeByteCodeType;
+
+typedef struct RedeByteCode {
+    RedeByteCodeType type;
+    union {
+        struct {
+            char* path;
+        } file;
+        struct {
+            unsigned char* buffer;
+        } buffer;
+    } data;
+} RedeByteCode;
+
+typedef enum RedeVariableType {
+    RedeVariableTypeNumber,
+    RedeVariableTypeString,
+    RedeVariableTypeBoolean,
+} RedeVariableType;
+
+typedef struct RedeVariable {
+    int busy;
+    RedeVariableType type;
+    union {
+        float number;
+        struct {
+            char* string;
+            int length;
+        } string;
+        int boolean;
+    } data;
+} RedeVariable;
+
+typedef struct RedeFunctionArgs {
+    RedeVariable* values;
+    int length;
+} RedeFunctionArgs;
+
+typedef struct RedeRuntimeMemory {
+    RedeVariable* variablesBuffer;
+    size_t variablesBufferSize;
+    RedeVariable* stack;
+    size_t stackSize;
+    size_t stackActualSize;
+    char* stringBuffer;
+    size_t stringBufferLength;
+    size_t stringBufferActualLength;
+} RedeRuntimeMemory;
+
+#define Rede_createByteCodeFromBuffer(name, bytesBuffer)\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = (bytesBuffer)\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+#define Rede_createByteCodeFromFile(name, filePath)\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeFile,\
+        .data = {\
+            .file = {\
+                .path = (filePath)\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+
+#define Rede_createByteCode(name, ...)\
+    unsigned char name##__buffer[] = { __VA_ARGS__ };\
+    RedeByteCode name##__data = {\
+        .type = RedeByteCodeTypeBuffer,\
+        .data = {\
+            .buffer = {\
+                .buffer = name##__buffer\
+            }\
+        }\
+    };\
+    RedeByteCode* name = &name##__data;
+
+
+#define Rede_createRuntimeMemory(name, stackSizeA, variablesBufferSizeA, stringBufferSizeA)\
+    RedeVariable name##__stack[stackSizeA];\
+    memset(name##__stack, 0, sizeof(name##__stack));\
+    RedeVariable name##__variables[variablesBufferSizeA];\
+    memset(name##__variables, 0, sizeof(name##__variables));\
+    char name##__strings[stringBufferSizeA];\
+    memset(name##__strings, 0, stringBufferSizeA);\
+    RedeRuntimeMemory name##__data = {\
+        .stack = name##__stack,\
+        .stackActualSize = 0,\
+        .stackSize = stackSizeA,\
+        .stringBuffer = name##__strings,\
+        .stringBufferActualLength = 0,\
+        .stringBufferLength = stringBufferSizeA,\
+        .variablesBuffer = name##__variables,\
+        .variablesBufferSize = variablesBufferSizeA,\
+    };\
+    RedeRuntimeMemory* name = &name##__data;
+
+int Rede_execute(
+    RedeByteCode* program, 
+    RedeRuntimeMemory* memory,
+    int (*)(const char* name, size_t nameLength, const RedeFunctionArgs* args, RedeVariable* result, void* sharedData),
+    void* sharedData
+);
+
+#endif // REDE_RUNTIME_H
+
+#if !defined(REDE_RUNTIME_UTILS_H)
+#define REDE_RUNTIME_UTILS_H
+
+void Rede_printVariable(RedeVariable*);
+void Rede_printlnVariable(RedeVariable*);
+void Rede_setNumber(RedeVariable* variable, float number);
+void Rede_setString(RedeVariable* variable, char* string, size_t length);
+void Rede_setBoolean(RedeVariable* variable, int value);
+void Rede_printMemory(RedeRuntimeMemory*);
+void Rede_printBytecode(RedeByteCode* code);
+
+#endif // REDE_RUNTIME_UTILS_H
+
+#if defined(REDE_RUNTIME_IMPLEMENTATION)
+#if !defined(REDE_BYTE_CODES)
+#define REDE_BYTE_CODES
+
+#define REDE_TYPE_NUMBER            0x00
+#define REDE_TYPE_STRING            0x01
+#define REDE_TYPE_VAR               0x02
+#define REDE_TYPE_STACK             0x03
+#define REDE_TYPE_BOOL              0x04
+
+#define REDE_DIRECTION_FORWARD      0x00
+#define REDE_DIRECTION_BACKWARD     0x01
+
+#define REDE_CODE_ASSIGN            0x00
+#define REDE_CODE_STACK_PUSH        0x01
+#define REDE_CODE_CALL              0x02
+#define REDE_CODE_STACK_CLEAR       0x03
+#define REDE_CODE_JUMP              0x04
+#define REDE_CODE_JUMP_IF           0x05
+#define REDE_CODE_JUMP_IF_NOT       0x06
+
+#define REDE_CODE_NOP               0xFE
+#define REDE_CODE_END               0xFF
+
+#endif // REDE_BYTE_CODES
+
+void Rede_setNumber(RedeVariable* variable, float number) {
+    variable->type = RedeVariableTypeNumber;
+    variable->data.number = number;
+}
+
+void Rede_setString(RedeVariable* variable, char* string, size_t length) {
+    variable->type = RedeVariableTypeString;
+    variable->data.string.string = string;
+    variable->data.string.length = length;
+}
+
+void Rede_setBoolean(RedeVariable* variable, int value) {
+    variable->type = RedeVariableTypeBoolean;
+    variable->data.boolean = value == 0 ? 0 : 1;
+}
+
+void Rede_printVariable(RedeVariable* variables) {
+    switch(variables->type) {
+        case RedeVariableTypeNumber:
+            printf("%f", variables->data.number);
+            break;
+        case RedeVariableTypeString:
+            printf("'%s'", variables->data.string.string);
+            break;
+        case RedeVariableTypeBoolean:
+            printf(variables->data.boolean ? "true" : "false");
+            break;
+        default:
+            printf("Unknown type\n");
+    }
+}
+
+void Rede_printlnVariable(RedeVariable* variables) {
+    Rede_printVariable(variables);
+    printf("\n");
+}
+
+void Rede_printMemory(RedeRuntimeMemory* memory) {
+    printf("Stack: (%zu/%zu)\n", memory->stackActualSize, memory->stackSize);
+    for(size_t i = 0; i < memory->stackActualSize; i++) {
+        printf("%zu) ", i);
+        Rede_printlnVariable(memory->stack + i);
+    }
+    printf("\nVariables: (%zu)\n", memory->variablesBufferSize);
+    for(size_t i = 0; i < memory->variablesBufferSize; i++) {
+        if(memory->variablesBuffer[i].busy) {
+            printf("%zu) ", i);
+            Rede_printlnVariable(memory->variablesBuffer + i);
+        }
+    }
+    printf("\nString Buffer: (%zu/%zu)\n", memory->stringBufferActualLength, memory->stringBufferLength);
+    for(size_t i = 0; i < memory->stringBufferLength; i++) {
+        if(i % 32 == 0 && i > 0) {
+            printf("|\n|");
+        } else if(i == 0) {
+            printf("|");
+        }
+        if(i < memory->stringBufferActualLength) {
+            if(memory->stringBuffer[i]) {
+                printf("%c", memory->stringBuffer[i]);
+            } else {
+                printf(" ");
+            }
+        } else {
+            printf(".");
+        }
+    }
+    printf("|\n");
+}
 #include <stdlib.h>
 
 typedef enum RedeByteIteratorType {
@@ -361,3 +589,5 @@ exit_execution:
     RedeByteIterator_destroy(&iterator);
     return executionCode;
 }
+
+#endif // REDE_RUNTIME_IMPLEMENTATION

@@ -22,12 +22,12 @@
 
     #define CHECK(condition, modifier, ...)\
         do {\
-            int status = (condition);\
-            if(status < 0) {\
-                printf("LOGS '%s' Status: %d  ", logs__scope__name, status);\
+            int LOCAL_STATUS = (condition);\
+            if(LOCAL_STATUS < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, LOCAL_STATUS);\
                 printf(__VA_ARGS__);\
                 printf("\n");\
-                return status + (modifier);\
+                return LOCAL_STATUS + (modifier);\
             }\
         } while(0);\
 
@@ -51,8 +51,8 @@
 
     #define CHECK(condition, modifier, ...)\
         do {\
-            int status = (condition);\
-            if(status < 0) return status + (modifier);\
+            int LOCAL_STATUS = (condition);\
+            if(LOCAL_STATUS < 0) return LOCAL_STATUS + (modifier);\
         } while(0);\
 
     #define LOGS_ONLY(code)

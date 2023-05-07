@@ -34,14 +34,30 @@ int RedeCompilerHelpers_writeStatement(
                 tokenEnded = 0;
             }
             tokenLength++;
-        } else if(ch == ' ' || ch == '\n' || ch == '\r') {
+        } else if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->whileLoopBodyDepth > 0 && ch == ')')) {
+            int writtenStatement = 0;
             if(!tokenEnded && !lookingForTokenStart) {
                 tokenEnded = 1;
                 if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, iterator)) {
                     LOG_LN("While loop");
                     CHECK(RedeCompilerHelpers_writeWhile(iterator, memory, dest, ctx), 0, "Failed to write while");
-                    return 0;
+                    writtenStatement = 1;
+                } else if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("Keyword: continue");
+                    CHECK(RedeCompilerHelpers_writeContinue(dest, ctx), 0, "Failed to write continue");
+                    writtenStatement = 1;
+                } else if(RedeCompilerHelpers_isToken("break", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("Keyword: break");
+                    CHECK(RedeCompilerHelpers_writeBreak(dest, ctx), 0, "Failed to write break");
+                    writtenStatement = 1;
                 }
+            }
+            if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
+                LOG_LN("Got ')' inside of while-loop body. End of the loop");
+                return 0;
+            }
+            if(writtenStatement) {
+                return 0;
             }
         } else if(ch == '=' || ch == '(') {
             LOGS_ONLY(
@@ -62,9 +78,6 @@ int RedeCompilerHelpers_writeStatement(
                 CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), 0, "Failed to clear the stack");
                 return 1;
             }
-        } else if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
-            LOG_LN("Got ')' inside of while-loop body. End of the loop");
-            return 0;
         } else {
             LOG_LN("Unexpected char '%c'", ch);
             return -1;

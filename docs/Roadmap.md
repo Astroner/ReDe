@@ -26,7 +26,7 @@
  - [ ] Implement new language features
      - [x] Implement booleans
      - [ ] Implement if-cases
-     - [ ] Implement while loops
+     - [x] Implement while loops
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Design meta-information concept to provide useful information from compiler to runtime
  - [ ] Implement meta-info on runtime level

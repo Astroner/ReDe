@@ -16,8 +16,8 @@ int main(void) {
 
     Rede_createCompilationMemory(memory, 256);
 
-    // Rede_createBufferDest(dest, 1024);
-    Rede_createFileDest(dest, "index.rd");
+    Rede_createBufferDest(dest, 1024);
+    // Rede_createFileDest(dest, "index.rd");
 
     int status = Rede_compile(code, memory, dest);
     printf("\nCode:\n");
@@ -37,12 +37,13 @@ int main(void) {
         }
         printf("\n");
     }
+
     if(status < 0) return 1;
 
     printf("\nExecution: \n");
 
-    // Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
-    Rede_createByteCodeFromFile(bytes, "index.rd");
+    Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
+    // Rede_createByteCodeFromFile(bytes, "index.rd");
 
     // Rede_createByteCode(bytes,
     //     REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 0,
