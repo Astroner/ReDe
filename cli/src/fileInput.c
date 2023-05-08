@@ -5,6 +5,11 @@
 void fileInput(Options* options) {
     if(options->file.type == FileTypeRD) {
         Rede_createByteCodeFromFile(src, options->file.path);
+        if(options->printBytecode) {
+            printf("\nBytecode:\n");
+            Rede_printBytecode(src);
+            printf("\n");
+        }
 
         Rede_createRuntimeMemory(runtime, 256, 256, 1024);
 
@@ -50,6 +55,12 @@ void fileInput(Options* options) {
     }
     
     Rede_createRuntimeMemory(runtime, 256, 256, 1000);
+
+    if(options->printBytecode) {
+        printf("\nBytecode:\n");
+        Rede_printBytecode(&bytes);
+        printf("\n");
+    }
 
     int executionStatus = Rede_execute(&bytes, runtime, Rede_std, NULL);
 

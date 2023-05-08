@@ -9,7 +9,7 @@ typedef struct Flag {
 } Flag;
 
 
-#define MAX_NAME_LENGTH 14
+#define MAX_NAME_LENGTH 15
 
 char* helpDescription[] = {
     "Get CLI tool help",
@@ -32,6 +32,11 @@ char* postCompilationExecutionDescription[] = {
     NULL
 };
 
+char* printBytecodeDescription[] = {
+    "Print program bytecode",
+    NULL
+};
+
 Flag flags[] = {
     {
         .name = "--help, -h",
@@ -47,6 +52,11 @@ Flag flags[] = {
         .name = "--execute, -e",
         .nameLength = 14,
         postCompilationExecutionDescription
+    },
+    {
+        .name = "--bytecode, -b",
+        .nameLength = 15,
+        printBytecodeDescription
     }
 };
 

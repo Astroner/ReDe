@@ -40,9 +40,10 @@ int main(void) {
 
     if(status < 0) return 1;
 
-    printf("\nExecution: \n");
 
     Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
+    printf("Parsed bytecode: \n");
+    Rede_printByteCode(bytes);
     // Rede_createByteCodeFromFile(bytes, "index.rd");
 
     // Rede_createByteCode(bytes,
@@ -61,6 +62,8 @@ int main(void) {
     //     REDE_CODE_JUMP, REDE_DIRECTION_BACKWARD, 50, 0,
     //     REDE_CODE_END
     // )
+
+    printf("\nExecution: \n");
 
     Rede_createRuntimeMemory(runtime, 256, 256, 256);
 

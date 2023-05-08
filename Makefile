@@ -49,13 +49,24 @@ $(CORE_OBJECTS): %.o: %.c
 
 
 # Builds runtime STB-like lib
-$(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h core/headers/RedeByteCodes.h core/src/RedeRuntime.c core/src/RedeRuntimeUtils.c
+$(RUNTIME_LIB_NAME): core/headers/RedeRuntime.h \
+		core/headers/RedeByteCodes.h \
+		core/headers/RedeByteIterator.h \
+		core/src/RedeRuntime.c \
+		core/src/RedeRuntimeUtils.c \
+		core/src/RedeByteIterator.c
 	cat core/headers/RedeRuntime.h > $(RUNTIME_LIB_NAME)
 	tail -n +2 core/headers/RedeRuntimeUtils.h >> $(RUNTIME_LIB_NAME)
 	echo "\n#if defined(REDE_RUNTIME_IMPLEMENTATION)" >> $(RUNTIME_LIB_NAME)
 	cat core/headers/RedeByteCodes.h >> $(RUNTIME_LIB_NAME)
-	tail -n +2 core/src/RedeRuntimeUtils.c >> $(RUNTIME_LIB_NAME)
-	tail -n +3 core/src/RedeRuntime.c >> $(RUNTIME_LIB_NAME)
+	echo "\n" >> $(RUNTIME_LIB_NAME)
+	tail -n +2 core/headers/RedeByteIterator.h >> $(RUNTIME_LIB_NAME)
+	echo "\n" >> $(RUNTIME_LIB_NAME)
+	tail -n +3 core/src/RedeByteIterator.c >> $(RUNTIME_LIB_NAME)
+	echo "\n" >> $(RUNTIME_LIB_NAME)
+	tail -n +4 core/src/RedeRuntimeUtils.c >> $(RUNTIME_LIB_NAME)
+	echo "\n" >> $(RUNTIME_LIB_NAME)
+	tail -n +4 core/src/RedeRuntime.c >> $(RUNTIME_LIB_NAME)
 	echo "\n#endif // REDE_RUNTIME_IMPLEMENTATION" >> $(RUNTIME_LIB_NAME)
 
 

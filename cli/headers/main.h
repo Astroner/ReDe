@@ -3,7 +3,7 @@
 #if !defined(REALTIME_H)
 #define REALTIME_H
 
-void realtime();
+void realtime(Options* options);
 void fileInput(Options* options);
 void printHelp();
 

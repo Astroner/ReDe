@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
 
     if(options.file.type != FileTypeNone) fileInput(&options);
     else if(options.help) printHelp();
-    else realtime();
+    else realtime(&options);
 
     return 0;
 }

@@ -28,7 +28,7 @@ int fCall(const char *name, size_t nameLength, const RedeFunctionArgs *args, Red
     return 0;
 }
 
-void realtime() {
+void realtime(Options* options) {
     printf("Guten Tag!\n");
     printf("ReDe CLI v0.1\n");
 
@@ -88,6 +88,10 @@ void realtime() {
         if(status < 0) {
             printf("Failed to compile\n");
             goto loop_end;
+        }
+
+        if(options->printBytecode) {
+            Rede_printBytecode(bytes);
         }
 
         status = Rede_execute(bytes, runtime, fCall, &data);

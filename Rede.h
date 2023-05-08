@@ -165,6 +165,105 @@ void Rede_printBytecode(RedeByteCode* code);
 
 #endif // REDE_BYTE_CODES
 
+
+
+#if !defined(REDE_BYTE_ITERATOR)
+#define REDE_BYTE_ITERATOR
+
+typedef enum RedeByteIteratorType {
+    RedeByteIteratorTypeBuffer,
+    RedeByteIteratorTypeFile
+} RedeByteIteratorType;
+
+typedef struct RedeByteIterator {
+    RedeByteIteratorType type;
+    union {
+        struct {
+            unsigned char* cursor;
+        } buffer;
+        struct {
+            FILE* fp;
+        } file;
+    } data;
+} RedeByteIterator;
+
+int RedeByteIterator_init(RedeByteCode* src, RedeByteIterator* iterator);
+void RedeByteIterator_destroy(RedeByteIterator* iterator);
+unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator);
+int RedeByteIterator_moveCursor(RedeByteIterator* iterator, int shift);
+
+
+#endif // REDE_BYTE_ITERATOR
+
+
+
+#include <stdlib.h>
+
+int RedeByteIterator_init(RedeByteCode* src, RedeByteIterator* iterator) {
+    switch(src->type) {
+        case RedeByteCodeTypeBuffer:
+            iterator->type = RedeByteIteratorTypeBuffer;
+            iterator->data.buffer.cursor = src->data.buffer.buffer;
+            break;
+
+        case RedeByteCodeTypeFile:
+            iterator->type = RedeByteIteratorTypeFile;
+            iterator->data.file.fp = fopen(src->data.file.path, "rb");
+            if(!iterator->data.file.fp) return -1;
+            break;
+        
+        default:
+            return -1;
+    }
+
+    return 0;
+}
+
+void RedeByteIterator_destroy(RedeByteIterator* iterator) {
+    if(iterator->type == RedeByteIteratorTypeFile) {
+        fclose(iterator->data.file.fp);
+    }
+}
+
+unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator) {
+    switch(iterator->type) {
+        case RedeByteIteratorTypeBuffer: {
+            unsigned char byte = iterator->data.buffer.cursor[0];
+            iterator->data.buffer.cursor++;
+            return byte;
+        }
+        case RedeByteIteratorTypeFile: {
+            int el = getc(iterator->data.file.fp);
+            if(el == EOF || el < 0 || el > 255) {
+                return REDE_CODE_END;
+            }
+            return (unsigned char) el;
+        }
+        default:
+            fprintf(stderr, "Unknown iterator type\n");
+            exit(1);
+    }
+}
+
+int RedeByteIterator_moveCursor(RedeByteIterator* iterator, int shift) {
+    switch(iterator->type) {
+        case RedeByteIteratorTypeBuffer:
+            iterator->data.buffer.cursor += shift;
+            break;
+
+        case RedeByteIteratorTypeFile:
+            fseek(iterator->data.file.fp, shift, SEEK_CUR);
+            break;
+
+        default:
+            return -1;
+    }
+
+    return 0;
+}
+
+
+
 void Rede_setNumber(RedeVariable* variable, float number) {
     variable->type = RedeVariableTypeNumber;
     variable->data.number = number;
@@ -234,87 +333,174 @@ void Rede_printMemory(RedeRuntimeMemory* memory) {
     }
     printf("|\n");
 }
-#include <stdlib.h>
 
-typedef enum RedeByteIteratorType {
-    RedeByteIteratorTypeBuffer,
-    RedeByteIteratorTypeFile
-} RedeByteIteratorType;
 
-typedef struct RedeByteIterator {
-    RedeByteIteratorType type;
-    union {
-        struct {
-            unsigned char* cursor;
-        } buffer;
-        struct {
-            FILE* fp;
-        } file;
-    } data;
-} RedeByteIterator;
 
-static int RedeByteIterator_init(RedeByteCode* src, RedeByteIterator* iterator) {
-    switch(src->type) {
-        case RedeByteCodeTypeBuffer:
-            iterator->type = RedeByteIteratorTypeBuffer;
-            iterator->data.buffer.cursor = src->data.buffer.buffer;
+
+int Rede_printByteCode_type(RedeByteIterator* iterator) {
+    int variableType = RedeByteIterator_nextByte(iterator);
+
+    switch(variableType) {
+        case REDE_TYPE_BOOL: 
+            printf(RedeByteIterator_nextByte(iterator) > 0 ? "true" : "false");
             break;
 
-        case RedeByteCodeTypeFile:
-            iterator->type = RedeByteIteratorTypeFile;
-            iterator->data.file.fp = fopen(src->data.file.path, "rb");
-            if(!iterator->data.file.fp) return -1;
+        case REDE_TYPE_NUMBER: {
+            float number = 0;
+            unsigned char* bytes = (unsigned char*)&number;
+            bytes[0] = RedeByteIterator_nextByte(iterator);
+            bytes[1] = RedeByteIterator_nextByte(iterator);
+            bytes[2] = RedeByteIterator_nextByte(iterator);
+            bytes[3] = RedeByteIterator_nextByte(iterator);
+
+            printf("%f", number);
+            break;
+        }
+
+        case REDE_TYPE_STACK: 
+            printf("Stack value");
+            break;
+        
+        case REDE_TYPE_STRING:
+            printf("\'");
+            for(int i = 0; i < RedeByteIterator_nextByte(iterator); i++) {
+                printf("%c", RedeByteIterator_nextByte(iterator));
+            }
+            printf("\'");
+            break;
+        
+        case REDE_TYPE_VAR:
+            printf("Variable '%d'", RedeByteIterator_nextByte(iterator));
+
             break;
         
         default:
+            printf("Unknown type %d\n", variableType);
             return -1;
+
     }
 
     return 0;
 }
 
-static void RedeByteIterator_destroy(RedeByteIterator* iterator) {
-    if(iterator->type == RedeByteIteratorTypeFile) {
-        fclose(iterator->data.file.fp);
-    }
+int Rede_printByteCode_assignment(RedeByteIterator* iterator) {
+    printf("Assign to '%d' value ", RedeByteIterator_nextByte(iterator));
+    Rede_printByteCode_type(iterator);
+    printf("\n");
+
+    return 0;
 }
 
-static unsigned char RedeByteIterator_nextByte(RedeByteIterator* iterator) {
-    switch(iterator->type) {
-        case RedeByteIteratorTypeBuffer: {
-            unsigned char byte = iterator->data.buffer.cursor[0];
-            iterator->data.buffer.cursor++;
-            return byte;
-        }
-        case RedeByteIteratorTypeFile: {
-            int el = getc(iterator->data.file.fp);
-            if(el == EOF || el < 0 || el > 255) {
-                return REDE_CODE_END;
+int Rede_printByteCode_call(RedeByteIterator* iterator) {
+    printf("Call function '");
+    int nameLength = RedeByteIterator_nextByte(iterator);
+    for(int i = 0; i < nameLength; i++) {
+        printf("%c", (char)RedeByteIterator_nextByte(iterator));
+    }
+    printf("' with arguments count %d\n", RedeByteIterator_nextByte(iterator));
+
+    return 0;
+}
+
+int Rede_printByteCode_parseJumpSize(RedeByteIterator* iterator) {
+    int jumpSize = 0;
+    unsigned char* jumpBytes = (unsigned char*)&jumpSize;
+    jumpBytes[0] = RedeByteIterator_nextByte(iterator);
+    jumpBytes[1] = RedeByteIterator_nextByte(iterator);
+
+    return jumpSize;
+}
+
+int Rede_printByteCode_jump(RedeByteIterator* iterator) {
+    printf(RedeByteIterator_nextByte(iterator) == 0 ? "Jump forward " : "Jump backward ");
+
+    int jump = Rede_printByteCode_parseJumpSize(iterator);
+
+    printf("%d bytes\n", jump);
+
+    return 0;
+}
+
+int Rede_printByteCode_jumpIf(RedeByteIterator* iterator) {
+    printf("If ");
+    Rede_printByteCode_type(iterator);
+    printf(RedeByteIterator_nextByte(iterator) == 0 ? " jump forward " : "jump backward ");
+
+    int jump = Rede_printByteCode_parseJumpSize(iterator);
+    printf("%d bytes\n", jump);
+
+    return 0;
+}
+
+int Rede_printByteCode_jumpIfNot(RedeByteIterator* iterator) {
+    printf("If not ");
+    Rede_printByteCode_type(iterator);
+    printf(RedeByteIterator_nextByte(iterator) == 0 ? " jump forward " : "jump backward ");
+    
+    int jump = Rede_printByteCode_parseJumpSize(iterator);
+    printf("%d bytes\n", jump);
+
+    return 0;
+}
+
+int Rede_printByteCode_stackPush(RedeByteIterator* iterator) {
+    printf("Put on the stack ");
+    Rede_printByteCode_type(iterator);
+    printf("\n");
+
+    return 0;
+}
+
+int Rede_printByteCode_stackClear(RedeByteIterator* iterator __attribute__((unused))) {
+    printf("Clear the stack\n");
+    
+    return 0;
+}
+
+typedef struct Rede_printByteCode_Printer {
+    int (*print)(RedeByteIterator* iterator);
+} Rede_printByteCode_Printer;
+
+Rede_printByteCode_Printer Rede_printByteCodePrinters[] = {
+    [REDE_CODE_ASSIGN] = { Rede_printByteCode_assignment },
+    [REDE_CODE_CALL] = { Rede_printByteCode_call },
+    [REDE_CODE_JUMP] = { Rede_printByteCode_jump },
+    [REDE_CODE_JUMP_IF] = { Rede_printByteCode_jumpIf },
+    [REDE_CODE_JUMP_IF_NOT] = { Rede_printByteCode_jumpIfNot },
+    [REDE_CODE_STACK_PUSH] = { Rede_printByteCode_stackPush },
+    [REDE_CODE_STACK_CLEAR] = { Rede_printByteCode_stackClear },
+};
+
+
+void Rede_printBytecode(RedeByteCode* code) {
+    RedeByteIterator iterator;
+
+    RedeByteIterator_init(code, &iterator);
+
+
+    unsigned char byte;
+    while((byte = RedeByteIterator_nextByte(&iterator)) != REDE_CODE_END) {
+        if(byte == REDE_CODE_NOP) {
+            printf(" - NOP\n");
+        } else if(byte < sizeof(Rede_printByteCodePrinters) / sizeof(Rede_printByteCode_Printer)) {
+            Rede_printByteCode_Printer* printer = Rede_printByteCodePrinters + byte;
+            printf(" - ");
+            if(printer->print(&iterator) < 0) {
+                return;
             }
-            return (unsigned char) el;
+        } else {
+            printf("Unknown instruction %d\n", byte);
+            return;
         }
-        default:
-            fprintf(stderr, "Unknown iterator type\n");
-            exit(1);
     }
+    printf(" - END\n");
+
+
+    RedeByteIterator_destroy(&iterator);
 }
 
-static int RedeByteIterator_moveCursor(RedeByteIterator* iterator, int shift) {
-    switch(iterator->type) {
-        case RedeByteIteratorTypeBuffer:
-            iterator->data.buffer.cursor += shift;
-            break;
 
-        case RedeByteIteratorTypeFile:
-            fseek(iterator->data.file.fp, shift, SEEK_CUR);
-            break;
-
-        default:
-            return -1;
-    }
-
-    return 0;
-}
+#include <stdlib.h>
 
 
 int copyToStringBuffer(RedeByteIterator* bytes, RedeRuntimeMemory* memory, RedeVariable* result) {
