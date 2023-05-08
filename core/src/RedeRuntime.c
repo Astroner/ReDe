@@ -157,6 +157,9 @@ static int functionCall(
     int status = funcCall(name.data.string.string, name.data.string.length, &args, &result, sharedData);
 
     if(status < 0) {
+        if(status == -2) {
+            printf("Function '%s' was not provided\n", name.data.string.string);
+        }
         return status - 1;
     }
     memory->stringBufferActualLength -= name.data.string.length;

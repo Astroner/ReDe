@@ -43,7 +43,7 @@ int main(void) {
 
     Rede_createByteCodeFromBuffer(bytes, dest->data.buffer.buffer);
     printf("Parsed bytecode: \n");
-    Rede_printByteCode(bytes);
+    Rede_printBytecode(bytes);
     // Rede_createByteCodeFromFile(bytes, "index.rd");
 
     // Rede_createByteCode(bytes,

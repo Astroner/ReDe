@@ -356,13 +356,15 @@ int Rede_printByteCode_type(RedeByteIterator* iterator) {
             printf("Stack value");
             break;
         
-        case REDE_TYPE_STRING:
+        case REDE_TYPE_STRING: {
             printf("\'");
-            for(int i = 0; i < RedeByteIterator_nextByte(iterator); i++) {
+            int strLength = RedeByteIterator_nextByte(iterator);
+            for(int i = 0; i < strLength; i++) {
                 printf("%c", RedeByteIterator_nextByte(iterator));
             }
             printf("\'");
             break;
+        }
         
         case REDE_TYPE_VAR:
             printf("Variable '%d'", RedeByteIterator_nextByte(iterator));
@@ -650,6 +652,9 @@ static int functionCall(
     int status = funcCall(name.data.string.string, name.data.string.length, &args, &result, sharedData);
 
     if(status < 0) {
+        if(status == -2) {
+            printf("Function '%s' was not provided\n", name.data.string.string);
+        }
         return status - 1;
     }
     memory->stringBufferActualLength -= name.data.string.length;

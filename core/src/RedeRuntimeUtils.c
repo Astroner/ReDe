@@ -100,13 +100,15 @@ int Rede_printByteCode_type(RedeByteIterator* iterator) {
             printf("Stack value");
             break;
         
-        case REDE_TYPE_STRING:
+        case REDE_TYPE_STRING: {
             printf("\'");
-            for(int i = 0; i < RedeByteIterator_nextByte(iterator); i++) {
+            int strLength = RedeByteIterator_nextByte(iterator);
+            for(int i = 0; i < strLength; i++) {
                 printf("%c", RedeByteIterator_nextByte(iterator));
             }
             printf("\'");
             break;
+        }
         
         case REDE_TYPE_VAR:
             printf("Variable '%d'", RedeByteIterator_nextByte(iterator));
