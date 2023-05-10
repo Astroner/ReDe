@@ -21,7 +21,7 @@ const hash = (str) => {
     return hash;
 }
 
-const functions = Array.from(content.toString().matchAll(/\/\* STD (\w+) \*\//g)).map(item => item[1]);
+const functions = Array.from(content.toString().matchAll(/int Rede_std_(\w+)\(const/g)).map(item => item[1]);
 
 let size = BigInt(functions.length);
 
@@ -45,6 +45,7 @@ while(true) {
 console.log(`HashTable size: ${size}`);
 console.log(`Indexes:`);
 console.log(indexToName);
+console.log();
 
 const tableItems = Array.from(indexToName.entries()).map(([index, name]) => ({ name, index }));
 
@@ -59,4 +60,4 @@ RedeStdFunction Rede_std_functions[${size}] = {
 };
 `
 
-fs.writeFileSync(path.resolve(__dirname, "./core/src/RedeStdTable.gen.c"), result);
+fs.writeFileSync(path.resolve(__dirname, "./core/RedeStdTable.gen.c"), result);

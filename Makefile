@@ -1,7 +1,7 @@
 CC=gcc-12
 
 # Core code
-CORE_STD_HASH_TABLE_FILE=core/src/RedeStdTable.gen.c
+CORE_STD_HASH_TABLE_FILE=core/RedeStdTable.gen.c
 CORE_SOURCES=$(wildcard core/src/*.c core/src/*/*c) $(CORE_STD_HASH_TABLE_FILE)
 CORE_OBJECTS=$(CORE_SOURCES:.c=.o)
 CORE_HEADERS=core/headers
@@ -160,9 +160,9 @@ tests: libs
 
 .PHONY: clean
 clean:
-	rm -f $(CORE_OBJECTS) $(CORE_EXECUTABLE) $(CLI_OBJECTS) $(CLI_EXECUTABLE) $(CORE_STD_HASH_TABLE_FILE)
+	rm -f $(CORE_OBJECTS) $(CORE_EXECUTABLE) $(CLI_OBJECTS) $(CLI_EXECUTABLE)
 
 
 .PHONY: clean-all
 clean-all: clean
-	rm -f $(RUNTIME_LIB_NAME) $(COMPILER_LIB_NAME) $(STD_LIB_NAME) $(GENERAL_LIB_NAME)
+	rm -f $(RUNTIME_LIB_NAME) $(COMPILER_LIB_NAME) $(STD_LIB_NAME) $(GENERAL_LIB_NAME) $(CORE_STD_HASH_TABLE_FILE)
