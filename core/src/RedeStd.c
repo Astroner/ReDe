@@ -1,4 +1,5 @@
 #include "RedeStd.h"
+#include "RedeStdTable.h"
 
 #include <string.h>
 
@@ -13,7 +14,8 @@ static unsigned long Rede_std_hash(const char* str) {
     return hash;
 }
 
-static int Rede_std_sum(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD sum */
+int Rede_std_sum(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setNumber(result, 0);
         return 0;
@@ -29,7 +31,8 @@ static int Rede_std_sum(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_mult(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD mult */
+int Rede_std_mult(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setNumber(result, 0);
         return 0;
@@ -45,7 +48,8 @@ static int Rede_std_mult(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_length(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD length */
+int Rede_std_length(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0 || args->values->type == RedeVariableTypeNumber) {
         Rede_setNumber(result, 0);
         return 0;
@@ -56,7 +60,8 @@ static int Rede_std_length(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_log(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD log */
+int Rede_std_log(const RedeFunctionArgs* args, RedeVariable* result) {
     for(int i = 0; i < args->length; i++) {
         Rede_printVariable(args->values + i);
         if(i < args->length - 1) {
@@ -70,7 +75,8 @@ static int Rede_std_log(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_even(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD even */
+int Rede_std_even(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0 || args->values->type != RedeVariableTypeNumber) {
         Rede_setBoolean(result, 0);
     } else {
@@ -80,28 +86,32 @@ static int Rede_std_even(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_odd(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD odd */
+int Rede_std_odd(const RedeFunctionArgs* args, RedeVariable* result) {
     Rede_std_even(args, result);
     Rede_setBoolean(result, !result->data.boolean);
 
     return 0;
 }
 
-static int Rede_std_incr(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD incr */
+int Rede_std_incr(const RedeFunctionArgs* args, RedeVariable* result) {
     if(result->type != RedeVariableTypeNumber || args->length == 0) return 0;
     Rede_setNumber(result, args->values->data.number + 1.f);
 
     return 0;
 }
 
-static int Rede_std_decr(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD decr */
+int Rede_std_decr(const RedeFunctionArgs* args, RedeVariable* result) {
     if(result->type != RedeVariableTypeNumber || args->length == 0) return 0;
     Rede_setNumber(result, args->values->data.number - 1.f);
 
     return 0;
 }
 
-static int Rede_std_eq(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD eq */
+int Rede_std_eq(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setBoolean(result, 0);
         return 0;
@@ -122,7 +132,8 @@ static int Rede_std_eq(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_bool(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD bool */
+int Rede_std_bool(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setBoolean(result, 0);
         return 0;
@@ -142,7 +153,8 @@ static int Rede_std_bool(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-static int Rede_std_not(const RedeFunctionArgs* args, RedeVariable* result) {
+/* STD not */
+int Rede_std_not(const RedeFunctionArgs* args, RedeVariable* result) {
     if(args->length == 0) {
         Rede_setBoolean(result, 1);
         return 0;
@@ -155,33 +167,27 @@ static int Rede_std_not(const RedeFunctionArgs* args, RedeVariable* result) {
     return 0;
 }
 
-typedef struct RedeFunction {
-    char* name;
-    int(*call)(const RedeFunctionArgs* args, RedeVariable* result);
-} RedeFunction;
+/* STD less */
+int Rede_std_less(const RedeFunctionArgs* args, RedeVariable* result) {
+    if(args->length < 2) {
+        Rede_setBoolean(result, 0);
+        return 0;
+    } else {
 
-RedeFunction functions[23] = {
-    [1] = { "mult", Rede_std_mult },
-    [2] = { "not", Rede_std_not },
-    [3] = { "sum", Rede_std_sum },
-    [4] = { "decr", Rede_std_decr },
-    [6] = { "even", Rede_std_even },
-    [9] = { "length", Rede_std_length },
-    [11] = { "eq", Rede_std_eq },
-    [15] = { "bool", Rede_std_bool },
-    [16] = { "incr", Rede_std_incr },
-    [19] = { "log", Rede_std_log },
-    [22] = { "odd", Rede_std_odd },
-};
+        return 0;
+    }
+
+    return 0;
+}
 
 int Rede_std(
     const char* name, size_t nameLength __attribute__ ((unused)), 
     const RedeFunctionArgs* args, RedeVariable* result, 
     void* sharedData __attribute__ ((unused))
 ) {
-    unsigned long index = Rede_std_hash(name) % (sizeof(functions) / sizeof(RedeFunction));
+    unsigned long index = Rede_std_hash(name) % Rede_std_functions_size;
 
-    RedeFunction function = functions[index];
+    RedeStdFunction function = Rede_std_functions[index];
 
     if(function.name == NULL || strcmp(function.name, name) != 0) return -2;
 

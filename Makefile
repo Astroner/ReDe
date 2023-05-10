@@ -1,7 +1,8 @@
 CC=gcc-12
 
 # Core code
-CORE_SOURCES=$(wildcard core/src/*.c core/src/*/*c)
+CORE_STD_HASH_TABLE_FILE=core/src/RedeStdTable.gen.c
+CORE_SOURCES=$(wildcard core/src/*.c core/src/*/*c) $(CORE_STD_HASH_TABLE_FILE)
 CORE_OBJECTS=$(CORE_SOURCES:.c=.o)
 CORE_HEADERS=core/headers
 CORE_EXECUTABLE=./rede-core
@@ -42,6 +43,9 @@ core: $(CORE_EXECUTABLE)
 
 $(CORE_EXECUTABLE): $(CORE_OBJECTS)
 	$(CC) $(CFLAGS) -o $(CORE_EXECUTABLE) $^
+
+$(CORE_STD_HASH_TABLE_FILE): core/src/RedeStd.c
+	node generateStd.js
 
 $(CORE_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ -I$(CORE_HEADERS) -Wall -Wextra -std=c99 -pedantic $<
@@ -103,14 +107,18 @@ $(COMPILER_LIB_NAME):\
 
 
 # Build STB-like standard library
-$(STD_LIB_NAME): core/headers/RedeStd.h core/src/RedeStd.c
+$(STD_LIB_NAME): core/headers/RedeStd.h core/headers/RedeStdTable.h core/src/RedeStd.c $(CORE_STD_HASH_TABLE_FILE)
 	echo "#if !defined(REDE_RUNTIME_PATH)" > $(STD_LIB_NAME)
 	echo "#define REDE_RUNTIME_PATH \"RedeRuntime.h\"" >> $(STD_LIB_NAME)
 	echo "#endif // REDE_RUNTIME_PATH\n" >> $(STD_LIB_NAME)
 	echo "#include REDE_RUNTIME_PATH" >> $(STD_LIB_NAME)
 	tail -n +3 core/headers/RedeStd.h >> $(STD_LIB_NAME)
 	echo "\n#if defined(REDE_STD_IMPLEMENTATION)" >> $(STD_LIB_NAME)
-	tail -n +2 core/src/RedeStd.c >> $(STD_LIB_NAME)
+	tail -n +2 core/headers/RedeStdTable.h >> $(STD_LIB_NAME)
+	echo "\n" >> $(COMPILER_LIB_NAME)
+	tail -n +2 $(CORE_STD_HASH_TABLE_FILE) >> $(STD_LIB_NAME)
+	echo "\n" >> $(COMPILER_LIB_NAME)
+	tail -n +3 core/src/RedeStd.c >> $(STD_LIB_NAME)
 	echo "\n#endif // REDE_STD_IMPLEMENTATION" >> $(STD_LIB_NAME)
 
 
@@ -152,7 +160,7 @@ tests: libs
 
 .PHONY: clean
 clean:
-	rm -f $(CORE_OBJECTS) $(CORE_EXECUTABLE) $(CLI_OBJECTS) $(CLI_EXECUTABLE)
+	rm -f $(CORE_OBJECTS) $(CORE_EXECUTABLE) $(CLI_OBJECTS) $(CLI_EXECUTABLE) $(CORE_STD_HASH_TABLE_FILE)
 
 
 .PHONY: clean-all

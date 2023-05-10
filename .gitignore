@@ -5,3 +5,4 @@ rede
 rede-core
 .vscode
 *.test
+RedeStdTable.gen.c
