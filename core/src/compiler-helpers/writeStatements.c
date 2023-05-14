@@ -5,7 +5,7 @@
 
 
 
-int RedeCompilerHelpers_writeStatements(
+RedeWriteStatus RedeCompilerHelpers_writeStatements(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
     RedeDest* dest,
@@ -15,19 +15,16 @@ int RedeCompilerHelpers_writeStatements(
     
     while(1) {
         int status = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
-        CHECK(status, 0, "Failed to write a statement");
+        CHECK(status, "Failed to write a statement");
 
-        char currentChar = RedeSourceIterator_current(iterator);
-
-        if(!currentChar || (ctx->whileLoopBodyDepth > 0 && currentChar == ')' && status != 1)) {
-            LOGS_ONLY(
-                if(ctx->whileLoopBodyDepth > 0 && currentChar == ')' && status != 1) {
-                    LOG_LN("Got ')' as the end of the while-loop body");
-                }
-            )
-            break;
+        if(status == RedeWriteStatusBracketTerminated) {
+            LOG_LN("Last statement was bracket terminated");
+            return RedeWriteStatusOk;
+        } else if(status == RedeWriteStatusEOI) {
+            LOG_LN("Last statement ended with EOI");
+            return RedeWriteStatusOk;
         }
     }
 
-    return 0;
+    return RedeWriteStatusOk;
 }

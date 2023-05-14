@@ -39,11 +39,11 @@ int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t iden
     }
 }
 
-int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
+RedeExpressionWriteStatus RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
     LOGS_SCOPE(writeBoolean);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), 0, "Failed to write REDE_TYPE_BOOL");
-    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), 0, "Failed to write boolean value");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), "Failed to write REDE_TYPE_BOOL");
+    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), "Failed to write boolean value");
 
-    return 0;
+    return RedeExpressionWriteStatusOk;
 }

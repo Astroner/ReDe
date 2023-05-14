@@ -37,7 +37,6 @@ int main(void) {
         }
         printf("\n");
     }
-
     if(status < 0) return 1;
 
 

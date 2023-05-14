@@ -5,7 +5,7 @@
 #include "RedeByteCodes.h"
 
 
-int RedeCompilerHelpers_writeStatement(
+RedeWriteStatus RedeCompilerHelpers_writeStatement(
     RedeSourceIterator* iterator,
     RedeCompilationMemory* memory,
     RedeDest* dest,
@@ -22,6 +22,8 @@ int RedeCompilerHelpers_writeStatement(
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("Char: '%c'(%d)", ch, ch);
 
+        int isBracketSeparator = ctx->bracketsBlockDepth > 0 && ch == ')';
+
         if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             if(tokenEnded) {
                 LOG_LN("Unexpected char '%c', expected function call or assignment", ch);
@@ -34,30 +36,40 @@ int RedeCompilerHelpers_writeStatement(
                 tokenEnded = 0;
             }
             tokenLength++;
-        } else if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->whileLoopBodyDepth > 0 && ch == ')')) {
-            int writtenStatement = 0;
+        } else if(
+            ch == ' ' || ch == '\n' || ch == '\r' 
+            ||
+            isBracketSeparator
+        ) {
+            RedeWriteStatus status = -20;
             if(!tokenEnded && !lookingForTokenStart) {
                 tokenEnded = 1;
-                if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, iterator)) {
-                    LOG_LN("While loop");
-                    CHECK(RedeCompilerHelpers_writeWhile(iterator, memory, dest, ctx), 0, "Failed to write while");
-                    writtenStatement = 1;
-                } else if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
+                if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
                     LOG_LN("Keyword: continue");
-                    CHECK(RedeCompilerHelpers_writeContinue(dest, ctx), 0, "Failed to write continue");
-                    writtenStatement = 1;
+
+                    CHECK(status = RedeCompilerHelpers_writeContinue(dest, ctx), "Failed to write continue");
                 } else if(RedeCompilerHelpers_isToken("break", tokenStart, tokenLength, iterator)) {
                     LOG_LN("Keyword: break");
-                    CHECK(RedeCompilerHelpers_writeBreak(dest, ctx), 0, "Failed to write break");
-                    writtenStatement = 1;
+
+                    CHECK(status = RedeCompilerHelpers_writeBreak(dest, ctx), "Failed to write break");
+                } else if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("While loop");
+
+                    CHECK(status = RedeCompilerHelpers_writeWhile(iterator, memory, dest, ctx), "Failed to write while");
+                } else if(RedeCompilerHelpers_isToken("if", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("If statement");
+
+                    CHECK(status = RedeCompilerHelpers_writeIfStatement(iterator, memory, dest, ctx), "Failed to write if-statement");
                 }
             }
-            if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
-                LOG_LN("Got ')' inside of while-loop body. End of the loop");
-                return 0;
+
+            if(isBracketSeparator) {
+                LOG_LN("Got ')' inside of brackets block. End of the block");
+                return RedeWriteStatusBracketTerminated;
             }
-            if(writtenStatement) {
-                return 0;
+            
+            if(status != -20) {
+                return status;
             }
         } else if(ch == '=' || ch == '(') {
             LOGS_ONLY(
@@ -69,26 +81,24 @@ int RedeCompilerHelpers_writeStatement(
             );
             if(ch == '=') {
                 LOG_LN("Variable assignment");
-                int status = RedeCompilerHelpers_writeAssignment(tokenStart, tokenLength, iterator, memory, dest, ctx);
-                CHECK(status, 0, "Failed to write assignment");
-                return status;
+                CHECK_RETURN(RedeCompilerHelpers_writeAssignment(tokenStart, tokenLength, iterator, memory, dest, ctx), "Failed to write assignment");
             } else {
                 LOG_LN("Function call");
-                CHECK(RedeCompilerHelpers_writeFunctionCall(tokenStart, tokenLength, iterator, memory, dest, ctx), 0, "Failed to write function call");
-                CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), 0, "Failed to clear the stack");
-                return 1;
+                CHECK(RedeCompilerHelpers_writeFunctionCall(tokenStart, tokenLength, iterator, memory, dest, ctx), "Failed to write function call");
+                CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), "Failed to clear the stack");
+                return RedeWriteStatusOk;
             }
         } else {
-            LOG_LN("Unexpected char '%c'", ch);
-            return -1;
+            LOG_LN("Unexpected char");
+            return RedeWriteStatusError;
         }
     }
 
-    if(lookingForTokenStart) {
+    if(lookingForTokenStart && ctx->bracketsBlockDepth == 0) {
         LOG_LN("Got input end");
-        return 0;
+        return RedeWriteStatusEOI;
     }
      
     LOG_LN("Unexpected end of input");
-    return -1;
+    return RedeWriteStatusError;
 }

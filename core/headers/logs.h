@@ -20,14 +20,14 @@
             printf("\n");\
         } while(0);\
 
-    #define CHECK(condition, modifier, ...)\
+    #define CHECK(condition, ...)\
         do {\
             int LOCAL_STATUS = (condition);\
             if(LOCAL_STATUS < 0) {\
                 printf("LOGS '%s' Status: %d  ", logs__scope__name, LOCAL_STATUS);\
                 printf(__VA_ARGS__);\
                 printf("\n");\
-                return LOCAL_STATUS + (modifier);\
+                return LOCAL_STATUS;\
             }\
         } while(0);\
 
@@ -43,16 +43,27 @@
                 elseCode;\
             }\
         } while(0);
+    
+    #define CHECK_RETURN(condition, ...)\
+        do {\
+            int LOCAL_STATUS = (condition);\
+            if(LOCAL_STATUS < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, LOCAL_STATUS);\
+                printf(__VA_ARGS__);\
+                printf("\n");\
+            }\
+            return LOCAL_STATUS;\
+        } while(0);\
 
 #else
     #define LOGS_SCOPE(name)
     #define LOG(...)
     #define LOG_LN(...)
 
-    #define CHECK(condition, modifier, ...)\
+    #define CHECK(condition, ...)\
         do {\
             int LOCAL_STATUS = (condition);\
-            if(LOCAL_STATUS < 0) return LOCAL_STATUS + (modifier);\
+            if(LOCAL_STATUS < 0) return LOCAL_STATUS;\
         } while(0);\
 
     #define LOGS_ONLY(code)
@@ -64,6 +75,8 @@
                 elseCode;\
             }\
         } while(0);
+    
+    #define CHECK_RETURN(condition, ...) return (condition);
 
 #endif // REDE_DO_LOGS
 

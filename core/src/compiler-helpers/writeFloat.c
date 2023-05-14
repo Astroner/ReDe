@@ -15,7 +15,7 @@ static size_t RedeCompilerHelpers_pow10L(size_t power) {
     return result;
 }
 
-int RedeCompilerHelpers_writeFloat(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeFloat(
     char firstChar, 
     RedeSourceIterator* iterator,
     RedeDest* dest,
@@ -36,6 +36,7 @@ int RedeCompilerHelpers_writeFloat(
     int floatingPoint = 0;
     size_t floatingPointPosition = 1;
 
+    int endedWithSeparator = 0;
     char ch;
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
@@ -52,15 +53,19 @@ int RedeCompilerHelpers_writeFloat(
             floatingPoint = 1;
         } else if(
             ch == ' ' || ch == '\n' || ch == '\r' 
-            || 
-            (ctx->functionCallDepth > 0 && ch == ')')
             ||
-            (ctx->whileLoopBodyDepth > 0 && ch == ')')
+            (ctx->bracketsBlockDepth > 0 && ch == ')')
         ) {
+            LOGS_ONLY(
+                if(ctx->bracketsBlockDepth > 0 && ch == ')') {
+                    LOG_LN("Count as input end because of brackets block depth = %d", ctx->bracketsBlockDepth);
+                }
+            )
+            endedWithSeparator = 1;
             break;
         } else {
             LOG_LN("Unexpected character");
-            return -2;
+            return RedeExpressionWriteStatusError;
         }
     }
 
@@ -70,7 +75,7 @@ int RedeCompilerHelpers_writeFloat(
 
     LOG_LN("Result: %f", result);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_NUMBER), 0, "Failed to write REDE_TYPE_NUMBER");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_NUMBER), "Failed to write REDE_TYPE_NUMBER");
 
 
     LOG_LN("Serializing");
@@ -78,8 +83,14 @@ int RedeCompilerHelpers_writeFloat(
     char* bytes = (char*)&result;
 
     for(size_t i = 0; i < sizeof(float); i++) {
-        CHECK(RedeDest_writeByte(dest, bytes[i]), 0, "Failed to write float byte with index %zu", i);
+        CHECK(RedeDest_writeByte(dest, bytes[i]), "Failed to write float byte with index %zu", i);
     }
-
-    return 0;
+    
+    if(ch == ')') {
+        return RedeExpressionWriteStatusBracketTerminated;
+    } else if(!endedWithSeparator) {
+        return RedeExpressionWriteStatusEOI;
+    } else {
+        return RedeExpressionWriteStatusOk;
+    }
 }

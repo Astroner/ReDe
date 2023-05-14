@@ -1071,14 +1071,14 @@ void RedeSourceIterator_moveCursorBack(RedeSourceIterator* iterator, size_t shif
             printf("\n");\
         } while(0);\
 
-    #define CHECK(condition, modifier, ...)\
+    #define CHECK(condition, ...)\
         do {\
             int LOCAL_STATUS = (condition);\
             if(LOCAL_STATUS < 0) {\
                 printf("LOGS '%s' Status: %d  ", logs__scope__name, LOCAL_STATUS);\
                 printf(__VA_ARGS__);\
                 printf("\n");\
-                return LOCAL_STATUS + (modifier);\
+                return LOCAL_STATUS;\
             }\
         } while(0);\
 
@@ -1094,16 +1094,27 @@ void RedeSourceIterator_moveCursorBack(RedeSourceIterator* iterator, size_t shif
                 elseCode;\
             }\
         } while(0);
+    
+    #define CHECK_RETURN(condition, ...)\
+        do {\
+            int LOCAL_STATUS = (condition);\
+            if(LOCAL_STATUS < 0) {\
+                printf("LOGS '%s' Status: %d  ", logs__scope__name, LOCAL_STATUS);\
+                printf(__VA_ARGS__);\
+                printf("\n");\
+            }\
+            return LOCAL_STATUS;\
+        } while(0);\
 
 #else
     #define LOGS_SCOPE(name)
     #define LOG(...)
     #define LOG_LN(...)
 
-    #define CHECK(condition, modifier, ...)\
+    #define CHECK(condition, ...)\
         do {\
             int LOCAL_STATUS = (condition);\
-            if(LOCAL_STATUS < 0) return LOCAL_STATUS + (modifier);\
+            if(LOCAL_STATUS < 0) return LOCAL_STATUS;\
         } while(0);\
 
     #define LOGS_ONLY(code)
@@ -1115,6 +1126,8 @@ void RedeSourceIterator_moveCursorBack(RedeSourceIterator* iterator, size_t shif
                 elseCode;\
             }\
         } while(0);
+    
+    #define CHECK_RETURN(condition, ...) return (condition);
 
 #endif // REDE_DO_LOGS
 
@@ -1243,6 +1256,54 @@ int RedeDest_writeByteAt(RedeDest* dest, size_t index, unsigned char byte) {
 #if !defined(REDE_COMPILER_HELPERS)
 #define REDE_COMPILER_HELPERS
 
+/* EOI = End of input */
+
+typedef enum RedeWriteStatus {
+    RedeWriteStatusError = -1,
+    RedeWriteStatusOk = 0,
+
+    /**
+     * @brief Statement ended with bracket
+     * 
+     */
+    RedeWriteStatusBracketTerminated = 1,
+
+    /**
+     * @brief Statement ended with EOI
+     * 
+     */
+    RedeWriteStatusEOI = 2
+} RedeWriteStatus;
+
+typedef enum RedeExpressionWriteStatus {
+    RedeExpressionWriteStatusOk = 0,
+    RedeExpressionWriteStatusError = -1,
+
+    /**
+     * @brief Expression is a function call
+     * 
+     */
+    RedeExpressionWriteStatusFunction = 1,
+
+    /**
+     * @brief Expression ended with bracket
+     * 
+     */
+    RedeExpressionWriteStatusBracketTerminated = 2,
+
+    /**
+     * @brief Expression ended with EOI
+     * 
+     */
+    RedeExpressionWriteStatusEOI = 3,
+
+    /**
+     * @brief Got just closing bracket as brackets block end
+     * 
+     */
+    RedeExpressionWriteStatusBracket = 4,
+} RedeExpressionWriteStatus;
+
 typedef struct RedeCompilationContextWhileLoop {
     size_t loopStart;
     size_t breakJumpStart;
@@ -1252,30 +1313,39 @@ typedef struct RedeCompilationContextWhileLoop {
 typedef struct RedeCompilationContext {
     int functionCallDepth;
     int isAssignment;
-    int ifStatementDepth;
+    int isIfStatementArgument;
     int isWhileLoopArgument;
-    int whileLoopBodyDepth;
+    int bracketsBlockDepth;
     RedeCompilationContextWhileLoop* whileLoopCtx;
 } RedeCompilationContext;
 
-int RedeCompilerHelpers_writeFloat(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeFloat(
     char firstChar, 
     RedeSourceIterator* iterator, RedeDest* dest, RedeCompilationContext* ctx
 );
 
-int RedeCompilerHelpers_writeString(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeString(
     int singleQuoted, 
-    RedeSourceIterator* iterator, RedeDest* dest, RedeCompilationContext* ctx
+    RedeSourceIterator* iterator, RedeDest* dest
 );
 
-int RedeCompilerHelpers_writeVariableValue(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeVariableValue(
     size_t identifierStart, size_t identifierLength, 
     RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest
 );
 
-int RedeCompilerHelpers_writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+RedeExpressionWriteStatus RedeCompilerHelpers_writeOperationWithToken(
+    RedeSourceIterator* iterator, 
+    RedeCompilationMemory* memory, 
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+);
 
-int RedeCompilerHelpers_writeAssignment(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest);
+
+RedeExpressionWriteStatus RedeCompilerHelpers_writeExpression(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+RedeWriteStatus RedeCompilerHelpers_writeAssignment(
     size_t tokenStart, size_t tokenLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory,
@@ -1283,7 +1353,7 @@ int RedeCompilerHelpers_writeAssignment(
     RedeCompilationContext* ctx
 );
 
-int RedeCompilerHelpers_writeFunctionCall(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeFunctionCall(
     size_t identifierStart, size_t identifierLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
@@ -1291,30 +1361,24 @@ int RedeCompilerHelpers_writeFunctionCall(
     RedeCompilationContext* ctx
 );
 
-int RedeCompilerHelpers_writeOperationWithToken(
-    RedeSourceIterator* iterator, 
-    RedeCompilationMemory* memory, 
-    RedeDest* dest,
-    RedeCompilationContext* ctx
-);
+RedeWriteStatus RedeCompilerHelpers_writeStatements(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
-int RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+RedeWriteStatus RedeCompilerHelpers_writeStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+RedeWriteStatus RedeCompilerHelpers_writeWhile(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+RedeWriteStatus RedeCompilerHelpers_writeContinue(RedeDest* dest, RedeCompilationContext* ctx);
+
+RedeWriteStatus RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationContext* ctx);
+
+RedeWriteStatus RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+
+
 
 unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);
 
 int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator);
-
-int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest);
-
-int RedeCompilerHelpers_writeStatements(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
-
-int RedeCompilerHelpers_writeStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
-
-int RedeCompilerHelpers_writeWhile(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
-
-int RedeCompilerHelpers_writeContinue(RedeDest* dest, RedeCompilationContext* ctx);
-
-int RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationContext* ctx);
 
 #endif // REDE_COMPILER_HELPERS
 
@@ -1354,17 +1418,17 @@ int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t iden
     }
 }
 
-int RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
+RedeExpressionWriteStatus RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
     LOGS_SCOPE(writeBoolean);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), 0, "Failed to write REDE_TYPE_BOOL");
-    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), 0, "Failed to write boolean value");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_BOOL), "Failed to write REDE_TYPE_BOOL");
+    CHECK(RedeDest_writeByte(dest, value == 0 ? 0 : 1), "Failed to write boolean value");
 
-    return 0;
+    return RedeExpressionWriteStatusOk;
 }
 
 
-int RedeCompilerHelpers_writeAssignment(
+RedeWriteStatus RedeCompilerHelpers_writeAssignment(
     size_t tokenStart, size_t tokenLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory,
@@ -1374,7 +1438,7 @@ int RedeCompilerHelpers_writeAssignment(
     LOGS_SCOPE(writeAssignment);
     ctx->isAssignment = 1;
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), "Failed to write REDE_CODE_ASSIGN to the buffer");
 
     unsigned long arrayIndex = RedeCompilerHelpers_hash(iterator, tokenStart, tokenLength) % memory->variables.bufferSize;
     LOG_LN("VARIABLE_HASH_TABLE_INDEX: %zu", arrayIndex);
@@ -1394,24 +1458,34 @@ int RedeCompilerHelpers_writeAssignment(
         }
     )
 
-    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
+    CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index '%d' to the buffer", name->index);
 
     int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
 
-    CHECK(status, -10, "Failed to write expression");
+    CHECK(status, "Failed to write expression");
 
-    if(status == 1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
-        CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
-        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
+    if(status == RedeExpressionWriteStatusFunction) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
+        CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index '%d' to the buffer after function call", name->index);
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), "Failed to write REDE_TYPE_STACK after function call");
     }
 
     ctx->isAssignment = 0;
-    return status;
+    
+    switch(status) {
+        case RedeExpressionWriteStatusBracketTerminated:
+            return RedeWriteStatusBracketTerminated;
+        
+        case RedeExpressionWriteStatusEOI:
+            return RedeWriteStatusEOI;
+        
+        default:
+            return RedeWriteStatusOk;
+    }
 }
 
 
-int RedeCompilerHelpers_writeBreak(
+RedeWriteStatus RedeCompilerHelpers_writeBreak(
     RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
@@ -1419,32 +1493,32 @@ int RedeCompilerHelpers_writeBreak(
 
     if(!ctx->whileLoopCtx) {
         LOG_LN("break keyword used outside of while-loop");
-        return -1;
+        return RedeWriteStatusError;
     }
     ctx->whileLoopCtx->breakRequired = 1;
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP");
-    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), 0, "Failed to write REDE_DIRECTION_BACKWARD");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP");
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), "Failed to write REDE_DIRECTION_BACKWARD");
     
     size_t bytesDiff = dest->index - ctx->whileLoopCtx->breakJumpStart + 1;
     if(bytesDiff > 0xFFFF) {
         LOG_LN("The loop is to big to jump backward");
-        return -1;
+        return RedeWriteStatusError;
     }
 
     LOG_LN("Back jump length: %zu", bytesDiff);
 
     unsigned char* bytes = (unsigned char*)&bytesDiff;
 
-    CHECK(RedeDest_writeByte(dest, bytes[0]), 0, "Failed to write the first byte of the back jump");
-    CHECK(RedeDest_writeByte(dest, bytes[1]), 0, "Failed to write the second byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[0]), "Failed to write the first byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[1]), "Failed to write the second byte of the back jump");
 
 
-    return 0;
+    return RedeWriteStatusOk;
 }
 
 
-int RedeCompilerHelpers_writeContinue(
+RedeWriteStatus RedeCompilerHelpers_writeContinue(
     RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
@@ -1452,30 +1526,30 @@ int RedeCompilerHelpers_writeContinue(
 
     if(!ctx->whileLoopCtx) {
         LOG_LN("continue keyword used outside of while-loop");
-        return -1;
+        return RedeWriteStatusError;
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP");
-    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), 0, "Failed to write REDE_DIRECTION_BACKWARD");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP");
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), "Failed to write REDE_DIRECTION_BACKWARD");
     
     size_t bytesDiff = dest->index - ctx->whileLoopCtx->loopStart + 1;
     if(bytesDiff > 0xFFFF) {
         LOG_LN("The loop is to big to jump backward");
-        return -1;
+        return RedeWriteStatusError;
     }
 
     LOG_LN("Back jump length: %zu", bytesDiff);
 
     unsigned char* bytes = (unsigned char*)&bytesDiff;
 
-    CHECK(RedeDest_writeByte(dest, bytes[0]), 0, "Failed to write the first byte of the back jump");
-    CHECK(RedeDest_writeByte(dest, bytes[1]), 0, "Failed to write the second byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[0]), "Failed to write the first byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[1]), "Failed to write the second byte of the back jump");
 
-    return 0;
+    return RedeWriteStatusOk;
 }
 
 
-int RedeCompilerHelpers_writeExpression(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeExpression(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
     RedeDest* dest,
@@ -1489,33 +1563,27 @@ int RedeCompilerHelpers_writeExpression(
         
         if((ch >= '0' && ch <= '9') || ch == '-') {
             LOG_LN("Number assignment");
-            CHECK(RedeCompilerHelpers_writeFloat(ch, iterator, dest, ctx), -10, "Failed to write a float");
-            return 0;
+            CHECK_RETURN(RedeCompilerHelpers_writeFloat(ch, iterator, dest, ctx), "Failed to write a float");
         } else if(ch == '"' || ch == '\'') {
             LOG_LN("String assignment");
-            CHECK(RedeCompilerHelpers_writeString(ch == '\'', iterator, dest, ctx), -20, "Failed to write a string");
-            return 0;
+            CHECK_RETURN(RedeCompilerHelpers_writeString(ch == '\'', iterator, dest), "Failed to write a string");
         } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             LOG_LN("Operation with token");
-            int status = RedeCompilerHelpers_writeOperationWithToken(iterator, memory, dest, ctx);
-            CHECK(status, -30, "Failed to write function call or variable value");
-            return status;
+            CHECK_RETURN(RedeCompilerHelpers_writeOperationWithToken(iterator, memory, dest, ctx), "Failed to write function call or variable value");
         } else if(ch == ' ' || ch == '\n' || ch == '\r') {
             continue;
-        } else if(ctx->functionCallDepth > 0 && ch == ')') {
-            LOG_LN("GOT ')' during function arguments parsing, which means the end of the function call");
-            LOG_LN("Moving cursor back by 1");
-            RedeDest_moveCursorBack(dest, 1);
+        } else if(ctx->bracketsBlockDepth > 0 && ch == ')') {
+            LOG_LN("Brackets block end");
             
-            return 3;
+            return RedeExpressionWriteStatusBracket;
         } else {
             LOG_LN("Unexpected token");
-            return -1;
+            return RedeExpressionWriteStatusError;
         }
     }
 
-    LOG_LN("Unexpected end of the string");
-    return -2;
+    LOG_LN("Unexpected end of input");
+    return RedeExpressionWriteStatusError;
 }
 
 
@@ -1529,7 +1597,7 @@ static size_t RedeCompilerHelpers_pow10L(size_t power) {
     return result;
 }
 
-int RedeCompilerHelpers_writeFloat(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeFloat(
     char firstChar, 
     RedeSourceIterator* iterator,
     RedeDest* dest,
@@ -1550,6 +1618,7 @@ int RedeCompilerHelpers_writeFloat(
     int floatingPoint = 0;
     size_t floatingPointPosition = 1;
 
+    int endedWithSeparator = 0;
     char ch;
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
@@ -1566,15 +1635,19 @@ int RedeCompilerHelpers_writeFloat(
             floatingPoint = 1;
         } else if(
             ch == ' ' || ch == '\n' || ch == '\r' 
-            || 
-            (ctx->functionCallDepth > 0 && ch == ')')
             ||
-            (ctx->whileLoopBodyDepth > 0 && ch == ')')
+            (ctx->bracketsBlockDepth > 0 && ch == ')')
         ) {
+            LOGS_ONLY(
+                if(ctx->bracketsBlockDepth > 0 && ch == ')') {
+                    LOG_LN("Count as input end because of brackets block depth = %d", ctx->bracketsBlockDepth);
+                }
+            )
+            endedWithSeparator = 1;
             break;
         } else {
             LOG_LN("Unexpected character");
-            return -2;
+            return RedeExpressionWriteStatusError;
         }
     }
 
@@ -1584,7 +1657,7 @@ int RedeCompilerHelpers_writeFloat(
 
     LOG_LN("Result: %f", result);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_NUMBER), 0, "Failed to write REDE_TYPE_NUMBER");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_NUMBER), "Failed to write REDE_TYPE_NUMBER");
 
 
     LOG_LN("Serializing");
@@ -1592,14 +1665,20 @@ int RedeCompilerHelpers_writeFloat(
     char* bytes = (char*)&result;
 
     for(size_t i = 0; i < sizeof(float); i++) {
-        CHECK(RedeDest_writeByte(dest, bytes[i]), 0, "Failed to write float byte with index %zu", i);
+        CHECK(RedeDest_writeByte(dest, bytes[i]), "Failed to write float byte with index %zu", i);
     }
-
-    return 0;
+    
+    if(ch == ')') {
+        return RedeExpressionWriteStatusBracketTerminated;
+    } else if(!endedWithSeparator) {
+        return RedeExpressionWriteStatusEOI;
+    } else {
+        return RedeExpressionWriteStatusOk;
+    }
 }
 
 
-int RedeCompilerHelpers_writeFunctionCall(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeFunctionCall(
     size_t identifierStart, size_t identifierLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
@@ -1609,18 +1688,22 @@ int RedeCompilerHelpers_writeFunctionCall(
     LOGS_SCOPE(writeFunctionCall);
     ctx->functionCallDepth++;
 
+    LOG_LN("Current function call depth: %d", ctx->functionCallDepth);
+
     if(ctx->isAssignment && ctx->functionCallDepth == 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of assignment");
         RedeDest_moveCursorBack(dest, 2);
     } else if(ctx->isWhileLoopArgument && ctx->functionCallDepth == 1) {
         LOG_LN("Shifting the buffer cursor back because of function call as while-loop argument");
         RedeDest_moveCursorBack(dest, 1);
+    } else if(ctx->isIfStatementArgument && ctx->functionCallDepth == 1) {
+        LOG_LN("Shifting the buffer cursor back because of function call as if-statement argument");
+        RedeDest_moveCursorBack(dest, 1);
     } else if(ctx->functionCallDepth > 1) {
         LOG_LN("Shifting the buffer cursor back because of function call inside of function call");
         RedeDest_moveCursorBack(dest, 1);
     }
 
-    LOG_LN("Current function call depth: %d", ctx->functionCallDepth);
 
     LOG("Identifier (s: %zu, l: %zu)", identifierStart, identifierLength);
     LOGS_ONLY(
@@ -1630,69 +1713,135 @@ int RedeCompilerHelpers_writeFunctionCall(
         printf("\n");
     )
     
+    ctx->bracketsBlockDepth++;
     size_t argc = 0;
     while(1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_PUSH), 0, "Failed to write REDE_CODE_STACK_PUSH");
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_PUSH), "Failed to write REDE_CODE_STACK_PUSH");
         int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
-        CHECK(status, -10, "Failed to write parameter with index %zu", argc - 1);
+        CHECK(status, "Failed to write parameter with index %zu", argc - 1);
 
-        if(status == 3) {
-            LOG_LN("Got status 3 - just ')' at the end without expression");
+        if(status == RedeExpressionWriteStatusBracketTerminated) {
+            LOG_LN("Got expression closing bracket status: End of arguments");
+            argc++;
+            break;
+        } else if(status == RedeExpressionWriteStatusBracket) {
+            RedeDest_moveCursorBack(dest, 1);
             break;
         } else {
             argc++;
         }
-
-        char argEndingChar = RedeSourceIterator_current(iterator);
-
-        if(argEndingChar == ')') {
-            LOG_LN("Got ')', end of the arguments");
-            break;
-        } else if(argEndingChar == ' ' || argEndingChar == '\n' || argEndingChar == '\r') {
-            LOG_LN("Got white space, processing next argument");
-        } else {
-            LOG_LN("Unexpected end of the arguments at position '%zu'", iterator->index);
-
-            return -2;
-        }
     }
-    if(ctx->functionCallDepth > 1) {
-        LOG_LN("Have to check next char because of function call inside of function call");
-        RedeSourceIterator_nextChar(iterator);
-    }
+    ctx->bracketsBlockDepth--;
 
     LOG_LN("Arguments length: %zu", argc);
 
     if(identifierLength > 255) {
         LOG_LN("Identifier length is too big: %zu > 255", identifierLength);
-        return -1;
+        return RedeExpressionWriteStatusError;
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_CALL), 0, "Failed to write REDE_CODE_CALL");
-    CHECK(RedeDest_writeByte(dest, (unsigned char)identifierLength), 0, "Failed to write identifier length");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_CALL), "Failed to write REDE_CODE_CALL");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)identifierLength), "Failed to write identifier length");
 
     LOG_LN("Writing identifier: ");
     for(size_t i = identifierStart; i < identifierStart + identifierLength; i++) {
         char ch = RedeSourceIterator_charAt(iterator, i);
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
-        CHECK(RedeDest_writeByte(dest, ch), 0, "Failed to write");
+        CHECK(RedeDest_writeByte(dest, ch), "Failed to write");
     }
 
     if(argc > 255) {
         LOG_LN("Too much parameters: %zu > 255", argc);
-        return -1;
+        return RedeExpressionWriteStatusError;
     }
 
-    CHECK(RedeDest_writeByte(dest, (unsigned char)argc), 0, "Failed to write arguments count");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)argc), "Failed to write arguments count");
 
     ctx->functionCallDepth--;
 
-    return 0;
+    return RedeExpressionWriteStatusFunction;
 }
 
 
-int RedeCompilerHelpers_writeOperationWithToken(
+RedeWriteStatus RedeCompilerHelpers_writeIfStatement(
+    RedeSourceIterator* iterator,
+    RedeCompilationMemory* memory,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeIfStatement);
+
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), "Failed to write REDE_CODE_JUMP_IF_NOT");
+
+    ctx->isIfStatementArgument = 1;
+        int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
+        CHECK(status, "Failed to write the condition")
+    ctx->isIfStatementArgument = 0;
+
+    if(status == RedeExpressionWriteStatusFunction) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), "Failed to write REDE_CODE_JUMP_IF_NOT after the function call");
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), "Failed to write REDE_TYPE_STACK after the function call");
+    }
+
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_FORWARD), "Failed to write REDE_DIRECTION_FORWARD");
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write jump length placeholder first byte");
+    size_t firstJumpSizeByte = dest->index;
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write jump length placeholder second byte");
+
+
+
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(iterator))) {
+        LOG_LN("Char: '%c'(%d)", ch, ch);
+
+
+        int isOpenBracket = ch == '(';
+        if(
+            (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+            ||
+            ch == '('
+        ) {
+            RedeWriteStatus resultStatus = RedeWriteStatusOk;
+
+            if(isOpenBracket) {
+                LOG_LN("Multiple statements");
+
+                ctx->bracketsBlockDepth++;
+                CHECK(RedeCompilerHelpers_writeStatements(iterator, memory, dest, ctx), "Failed to write if multiple statements");
+                ctx->bracketsBlockDepth--;
+            } else {
+                LOG_LN("Single statement");
+                
+                RedeSourceIterator_moveCursorBack(iterator, 1);
+                resultStatus = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
+                CHECK(resultStatus, "Failed to write if single statement");
+            }
+
+            size_t diff = dest->index - (firstJumpSizeByte + 1);
+            if(diff > 0xFFFF) {
+                LOG_LN("The if body is to big to jump forward");
+                return RedeWriteStatusError;
+            }
+
+            LOG_LN("Jump size: %zu", diff);
+
+            unsigned char* diffBytes = (unsigned char*)&diff;
+
+            CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 0, diffBytes[0]), "Failed to write jump size first byte");
+            CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 1, diffBytes[1]), "Failed to write jump size second byte");
+
+            return resultStatus;
+        }
+    }
+
+
+    LOG_LN("Unexpected end of the input");
+    return RedeWriteStatusError;
+}
+
+
+RedeExpressionWriteStatus RedeCompilerHelpers_writeOperationWithToken(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
     RedeDest* dest,
@@ -1704,57 +1853,61 @@ int RedeCompilerHelpers_writeOperationWithToken(
     size_t identifierLength = 1;
 
     char ch;
-    while((ch = RedeSourceIterator_nextChar(iterator))) {
+    while(1) {
+        ch = RedeSourceIterator_nextChar(iterator);
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
+        int isBracketSeparator = ctx->bracketsBlockDepth > 0 && ch == ')';
+
         if(
-            ch == ' ' || ch == '\n' || ch == '\r' 
+            ch == ' ' || ch == '\n' || ch == '\r'  || ch == '\0'
             || 
-            (ctx->functionCallDepth > 0 && ch == ')')
-            ||
-            (ctx->whileLoopBodyDepth > 0 && ch == ')')
+            isBracketSeparator
         ) {
             LOGS_ONLY(
-                if(ctx->functionCallDepth > 0 && ch == ')') {
-                    LOG_LN("Token cut byt ')' token at the end of the function call");
-                } else if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
-                    LOG_LN("Token cut byt ')' token at the end of the while-loop body");
+                if(isBracketSeparator) {
+                    LOG_LN("Token separated by ')' token at the end of brackets block");
+                } else if(ch == '\0') {
+                    LOG_LN("Input end");
                 }
             );
 
             if(RedeCompilerHelpers_isToken("true", identifierStart, identifierLength, iterator)) {
                 LOG_LN("Boolean value 'true'");
-                CHECK(RedeCompilerHelpers_writeBoolean(1, dest), 0, "Failed to write boolean");
+                CHECK(RedeCompilerHelpers_writeBoolean(1, dest), "Failed to write boolean");
             } else if(RedeCompilerHelpers_isToken("false", identifierStart, identifierLength, iterator)) {
                 LOG_LN("Boolean value 'false'");
-                CHECK(RedeCompilerHelpers_writeBoolean(0, dest), 0, "Failed to write boolean");
-            } else if(RedeCompilerHelpers_isToken("if", identifierStart, identifierLength, iterator)) {
-                LOG_LN("If-statement");
-                LOG_LN("NOT IMPLEMENTED");
-                return -1;
+                CHECK(RedeCompilerHelpers_writeBoolean(0, dest), "Failed to write boolean");
             } else {
                 LOG_LN("Variable value");
-                CHECK(RedeCompilerHelpers_writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), -10, "Failed to write variable value");
+                CHECK(RedeCompilerHelpers_writeVariableValue(identifierStart, identifierLength, iterator, memory, dest), "Failed to write variable value");
             }
-            return 0;
+
+            if(ch == '\0') {
+                return RedeExpressionWriteStatusEOI;
+            } else if(isBracketSeparator) {
+                return RedeExpressionWriteStatusBracketTerminated;
+            } else {
+                return RedeExpressionWriteStatusOk;
+            }
         } else if(ch == '(') {
             LOG_LN("Function call");
-            CHECK(RedeCompilerHelpers_writeFunctionCall(identifierStart, identifierLength, iterator, memory, dest, ctx), -20, "Failed to write function call");
-            return 1;
+            CHECK_RETURN(RedeCompilerHelpers_writeFunctionCall(identifierStart, identifierLength, iterator, memory, dest, ctx), "Failed to write function call");
         } else if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             identifierLength++;
         } else {
-            LOG_LN("Unexpected char '%c'(%d)", ch, ch);
+            LOG_LN("Unexpected char");
 
-            return -1;
+            return RedeExpressionWriteStatusError;
         }
     }
 
-    return -1;
+    LOG_LN("Unexpected loop break");
+    return RedeExpressionWriteStatusError;
 }
 
 
-int RedeCompilerHelpers_writeStatement(
+RedeWriteStatus RedeCompilerHelpers_writeStatement(
     RedeSourceIterator* iterator,
     RedeCompilationMemory* memory,
     RedeDest* dest,
@@ -1771,6 +1924,8 @@ int RedeCompilerHelpers_writeStatement(
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("Char: '%c'(%d)", ch, ch);
 
+        int isBracketSeparator = ctx->bracketsBlockDepth > 0 && ch == ')';
+
         if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
             if(tokenEnded) {
                 LOG_LN("Unexpected char '%c', expected function call or assignment", ch);
@@ -1783,30 +1938,40 @@ int RedeCompilerHelpers_writeStatement(
                 tokenEnded = 0;
             }
             tokenLength++;
-        } else if(ch == ' ' || ch == '\n' || ch == '\r' || (ctx->whileLoopBodyDepth > 0 && ch == ')')) {
-            int writtenStatement = 0;
+        } else if(
+            ch == ' ' || ch == '\n' || ch == '\r' 
+            ||
+            isBracketSeparator
+        ) {
+            RedeWriteStatus status = -20;
             if(!tokenEnded && !lookingForTokenStart) {
                 tokenEnded = 1;
-                if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, iterator)) {
-                    LOG_LN("While loop");
-                    CHECK(RedeCompilerHelpers_writeWhile(iterator, memory, dest, ctx), 0, "Failed to write while");
-                    writtenStatement = 1;
-                } else if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
+                if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
                     LOG_LN("Keyword: continue");
-                    CHECK(RedeCompilerHelpers_writeContinue(dest, ctx), 0, "Failed to write continue");
-                    writtenStatement = 1;
+
+                    CHECK(status = RedeCompilerHelpers_writeContinue(dest, ctx), "Failed to write continue");
                 } else if(RedeCompilerHelpers_isToken("break", tokenStart, tokenLength, iterator)) {
                     LOG_LN("Keyword: break");
-                    CHECK(RedeCompilerHelpers_writeBreak(dest, ctx), 0, "Failed to write break");
-                    writtenStatement = 1;
+
+                    CHECK(status = RedeCompilerHelpers_writeBreak(dest, ctx), "Failed to write break");
+                } else if(RedeCompilerHelpers_isToken("while", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("While loop");
+
+                    CHECK(status = RedeCompilerHelpers_writeWhile(iterator, memory, dest, ctx), "Failed to write while");
+                } else if(RedeCompilerHelpers_isToken("if", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("If statement");
+
+                    CHECK(status = RedeCompilerHelpers_writeIfStatement(iterator, memory, dest, ctx), "Failed to write if-statement");
                 }
             }
-            if(ctx->whileLoopBodyDepth > 0 && ch == ')') {
-                LOG_LN("Got ')' inside of while-loop body. End of the loop");
-                return 0;
+
+            if(isBracketSeparator) {
+                LOG_LN("Got ')' inside of brackets block. End of the block");
+                return RedeWriteStatusBracketTerminated;
             }
-            if(writtenStatement) {
-                return 0;
+            
+            if(status != -20) {
+                return status;
             }
         } else if(ch == '=' || ch == '(') {
             LOGS_ONLY(
@@ -1818,32 +1983,30 @@ int RedeCompilerHelpers_writeStatement(
             );
             if(ch == '=') {
                 LOG_LN("Variable assignment");
-                int status = RedeCompilerHelpers_writeAssignment(tokenStart, tokenLength, iterator, memory, dest, ctx);
-                CHECK(status, 0, "Failed to write assignment");
-                return status;
+                CHECK_RETURN(RedeCompilerHelpers_writeAssignment(tokenStart, tokenLength, iterator, memory, dest, ctx), "Failed to write assignment");
             } else {
                 LOG_LN("Function call");
-                CHECK(RedeCompilerHelpers_writeFunctionCall(tokenStart, tokenLength, iterator, memory, dest, ctx), 0, "Failed to write function call");
-                CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), 0, "Failed to clear the stack");
-                return 1;
+                CHECK(RedeCompilerHelpers_writeFunctionCall(tokenStart, tokenLength, iterator, memory, dest, ctx), "Failed to write function call");
+                CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), "Failed to clear the stack");
+                return RedeWriteStatusOk;
             }
         } else {
-            LOG_LN("Unexpected char '%c'", ch);
-            return -1;
+            LOG_LN("Unexpected char");
+            return RedeWriteStatusError;
         }
     }
 
-    if(lookingForTokenStart) {
+    if(lookingForTokenStart && ctx->bracketsBlockDepth == 0) {
         LOG_LN("Got input end");
-        return 0;
+        return RedeWriteStatusEOI;
     }
      
     LOG_LN("Unexpected end of input");
-    return -1;
+    return RedeWriteStatusError;
 }
 
 
-int RedeCompilerHelpers_writeStatements(
+RedeWriteStatus RedeCompilerHelpers_writeStatements(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
     RedeDest* dest,
@@ -1853,29 +2016,25 @@ int RedeCompilerHelpers_writeStatements(
     
     while(1) {
         int status = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
-        CHECK(status, 0, "Failed to write a statement");
+        CHECK(status, "Failed to write a statement");
 
-        char currentChar = RedeSourceIterator_current(iterator);
-
-        if(!currentChar || (ctx->whileLoopBodyDepth > 0 && currentChar == ')' && status != 1)) {
-            LOGS_ONLY(
-                if(ctx->whileLoopBodyDepth > 0 && currentChar == ')' && status != 1) {
-                    LOG_LN("Got ')' as the end of the while-loop body");
-                }
-            )
-            break;
+        if(status == RedeWriteStatusBracketTerminated) {
+            LOG_LN("Last statement was bracket terminated");
+            return RedeWriteStatusOk;
+        } else if(status == RedeWriteStatusEOI) {
+            LOG_LN("Last statement ended with EOI");
+            return RedeWriteStatusOk;
         }
     }
 
-    return 0;
+    return RedeWriteStatusOk;
 }
 
 
-int RedeCompilerHelpers_writeString(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeString(
     int singleQuoted, 
     RedeSourceIterator* iterator,
-    RedeDest* dest,
-    RedeCompilationContext* ctx
+    RedeDest* dest
 ) {
     LOGS_SCOPE(writeString);
 
@@ -1893,11 +2052,6 @@ int RedeCompilerHelpers_writeString(
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
-        if(endedWithQuotes) {
-            LOG_LN("Did an extra iteration after the string end coz of function call");
-            break;
-        }
-
         if(isBackSlashed) {
             LOG_LN("Back-slashed");
             isBackSlashed = 0;
@@ -1907,13 +2061,7 @@ int RedeCompilerHelpers_writeString(
 
             endedWithQuotes = 1;
 
-
-            if(ctx->functionCallDepth == 0) {
-                break;
-            } else {
-                LOG_LN("But need to check the next char because it is function call");
-                continue;
-            }
+            break;
         } else if (ch == '\\') {
             LOG_LN("Back-slash mark");
             
@@ -1928,7 +2076,7 @@ int RedeCompilerHelpers_writeString(
     if(!endedWithQuotes) {
         LOG_LN("Unexpected end of the string");
 
-        return -2;
+        return RedeExpressionWriteStatusError;
     }
 
     LOG_LN("Chars iterated: %zu", iteratedChars);
@@ -1938,12 +2086,12 @@ int RedeCompilerHelpers_writeString(
     if(pureStringLength > 255) {
         LOG_LN("String length overflow (%zu > 255)", pureStringLength);
 
-        return -3;
+        return RedeExpressionWriteStatusError;
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_STRING), 0, "Failed to write REDE_TYPE_STRING");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_STRING), "Failed to write REDE_TYPE_STRING");
 
-    CHECK(RedeDest_writeByte(dest, (unsigned char)pureStringLength), 0, "Failed to write string length");
+    CHECK(RedeDest_writeByte(dest, (unsigned char)pureStringLength), "Failed to write string length");
 
     LOG_LN("Writing to the buffer");
     for(size_t i = stringStart; i < stringStart + iteratedChars; i++) {
@@ -1951,7 +2099,7 @@ int RedeCompilerHelpers_writeString(
         LOG_LN("CHAR: '%c'(%d)", ch, ch);
 
         if(ch != '\\') {
-            CHECK(RedeDest_writeByte(dest, (unsigned char)ch), 0, "Failed to write char");
+            CHECK(RedeDest_writeByte(dest, (unsigned char)ch), "Failed to write char");
         } 
         LOGS_ONLY(
             else {
@@ -1964,7 +2112,7 @@ int RedeCompilerHelpers_writeString(
 }
 
 
-int RedeCompilerHelpers_writeVariableValue(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeVariableValue(
     size_t identifierStart, 
     size_t identifierLength, 
     RedeSourceIterator* iterator, 
@@ -1990,20 +2138,20 @@ int RedeCompilerHelpers_writeVariableValue(
     if(!name->isBusy) {
         LOG_LN("Variable is not defined");
 
-        return -2;
+        return RedeExpressionWriteStatusError;
     }
 
     LOG_LN("Variable index: %d", name->index);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_VAR), 0, "Failed to write REDE_TYPE_VAR");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_VAR), "Failed to write REDE_TYPE_VAR");
 
-    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index");
+    CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index");
 
-    return 0;
+    return RedeExpressionWriteStatusOk;
 }
 
 
-int RedeCompilerHelpers_writeWhile(
+RedeWriteStatus RedeCompilerHelpers_writeWhile(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory,
     RedeDest* dest,
@@ -2017,7 +2165,7 @@ int RedeCompilerHelpers_writeWhile(
     size_t preBreakJumpStart;
 
     for(int i = 0; i < 8; i++) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_NOP), 0, "Failed write placeholder nop at index %d", i);
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_NOP), "Failed write placeholder nop at index %d", i);
         if(i == 0) {
             preBreakJumpStart = dest->index;
         } else if(i == 4) {
@@ -2025,28 +2173,27 @@ int RedeCompilerHelpers_writeWhile(
         }
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), "Failed to write REDE_CODE_JUMP_IF_NOT");
 
     currentLoop.loopStart = dest->index;
 
+
     ctx->isWhileLoopArgument = 1;
-
-    int expressionStatus = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
-    CHECK(expressionStatus, 0, "Failed to write condition");
-
+        int expressionStatus = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
+        CHECK(expressionStatus, "Failed to write condition");
     ctx->isWhileLoopArgument = 0;
 
-    if(expressionStatus == 1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT after the function call");
-        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after the function call");
+    if(expressionStatus == RedeExpressionWriteStatusFunction) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), "Failed to write REDE_CODE_JUMP_IF_NOT after the function call");
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), "Failed to write REDE_TYPE_STACK after the function call");
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_FORWARD), 0, "Failed to write REDE_DIRECTION_FORWARD");
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_FORWARD), "Failed to write REDE_DIRECTION_FORWARD");
 
-    CHECK(RedeDest_writeByte(dest, 0), 0, "Failed to write the first byte of jump size");
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write the first byte of jump size");
     size_t jumpSizeStart = dest->index;
 
-    CHECK(RedeDest_writeByte(dest, 0), 0, "Failed to write the second byte of jump size");
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write the second byte of jump size");
 
 
     RedeCompilationContextWhileLoop* prevCtx = ctx->whileLoopCtx;
@@ -2057,38 +2204,44 @@ int RedeCompilerHelpers_writeWhile(
     char ch;
     while((ch = RedeSourceIterator_nextChar(iterator))) {
         LOG_LN("Char: '%c'(%d)", ch, ch);
+
+        int isOpenBracket = ch == '(';
         if(
             (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
             ||
-            ch == '('
+            isOpenBracket
         ) {
-            if(ch == '(') {
+            RedeWriteStatus resultStatus = RedeWriteStatusOk;
+
+            if(isOpenBracket) {
                 LOG_LN("Multiple statements");
 
-                ctx->whileLoopBodyDepth++;
-                CHECK(RedeCompilerHelpers_writeStatements(iterator, memory, dest, ctx), 0, "Failed to write while-loop multiple statements");
-                ctx->whileLoopBodyDepth--;
+                ctx->bracketsBlockDepth++;
+                    CHECK(RedeCompilerHelpers_writeStatements(iterator, memory, dest, ctx), "Failed to write while-loop multiple statements");
+                ctx->bracketsBlockDepth--;
             } else {
                 LOG_LN("Single statement");
+
                 RedeSourceIterator_moveCursorBack(iterator, 1);
-                CHECK(RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx), 0, "Failed to write while-loop single statement");
+                resultStatus = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
+                CHECK(resultStatus, "Failed to write while-loop single statement");
             }
             
-            CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP");
-            CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), 0, "Failed to write REDE_DIRECTION_BACKWARD");
+            CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP");
+            CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), "Failed to write REDE_DIRECTION_BACKWARD");
 
             size_t bytesDiff = dest->index - currentLoop.loopStart + 1;
             if(bytesDiff > 0xFFFF) {
                 LOG_LN("The loop is to big to jump backward");
-                return -1;
+                return RedeWriteStatusError;
             }
 
             LOG_LN("Back jump length: %zu", bytesDiff);
 
             unsigned char* bytes = (unsigned char*)&bytesDiff;
 
-            CHECK(RedeDest_writeByte(dest, bytes[0]), 0, "Failed to write the first byte of the back jump");
-            CHECK(RedeDest_writeByte(dest, bytes[1]), 0, "Failed to write the second byte of the back jump");
+            CHECK(RedeDest_writeByte(dest, bytes[0]), "Failed to write the first byte of the back jump");
+            CHECK(RedeDest_writeByte(dest, bytes[1]), "Failed to write the second byte of the back jump");
 
             bytesDiff = dest->index - jumpSizeStart - 1;
 
@@ -2096,21 +2249,21 @@ int RedeCompilerHelpers_writeWhile(
 
             if(bytesDiff > 0xFFFF) {
                 LOG_LN("The loop is to big to jump forward");
-                return -1;
+                return RedeWriteStatusError;
             }
 
-            CHECK(RedeDest_writeByteAt(dest, jumpSizeStart, bytes[0]), 0, "Failed to write the first byte of the forward jump");
-            CHECK(RedeDest_writeByteAt(dest, jumpSizeStart + 1, bytes[1]), 0, "Failed to write the second byte of the forward jump");
+            CHECK(RedeDest_writeByteAt(dest, jumpSizeStart, bytes[0]), "Failed to write the first byte of the forward jump");
+            CHECK(RedeDest_writeByteAt(dest, jumpSizeStart + 1, bytes[1]), "Failed to write the second byte of the forward jump");
 
             ctx->whileLoopCtx = prevCtx;
 
             if(currentLoop.breakRequired) {
                 LOG_LN("Break required");
 
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 0, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP for break");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 1, REDE_DIRECTION_FORWARD), 0, "Failed to write REDE_DIRECTION_FORWARD for break");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 2, 4), 0, "Failed to write first destination byte for break");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 3, 0), 0, "Failed to write second destination byte for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 0, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 1, REDE_DIRECTION_FORWARD), "Failed to write REDE_DIRECTION_FORWARD for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 2, 4), "Failed to write first destination byte for break");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 3, 0), "Failed to write second destination byte for break");
 
                 bytesDiff = dest->index - preBreakJumpStart - 7;
 
@@ -2118,52 +2271,25 @@ int RedeCompilerHelpers_writeWhile(
 
                 if(bytesDiff > 0xFFFF) {
                     LOG_LN("The loop is to big to jump forward");
-                    return -1;
+                    return RedeWriteStatusError;
                 }
 
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 4, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP for break itself");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 5, REDE_DIRECTION_FORWARD), 0, "Failed to write REDE_DIRECTION_FORWARD for break itself");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 6, bytes[0]), 0, "Failed to write first destination byte for break itself");
-                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 7, bytes[1]), 0, "Failed to write second destination byte for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 4, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 5, REDE_DIRECTION_FORWARD), "Failed to write REDE_DIRECTION_FORWARD for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 6, bytes[0]), "Failed to write first destination byte for break itself");
+                CHECK(RedeDest_writeByteAt(dest, preBreakJumpStart + 7, bytes[1]), "Failed to write second destination byte for break itself");
             }
 
-            return 0;
+            return resultStatus;
         } else if(ch != ' ' && ch != '\n' && ch != '\r') {
             LOG_LN("Unexpected character");
-            return -1;
+            return RedeWriteStatusError;
         }
     }
 
     LOG_LN("Unexpected end of the input");
 
-    return -1;
-}
-
-
-int RedeCompilerHelpers_writeIfStatement(
-    RedeSourceIterator* iterator,
-    RedeCompilationMemory* memory,
-    RedeDest* dest,
-    RedeCompilationContext* ctx
-) {
-    LOGS_SCOPE(writeIfStatement);
-    ctx->ifStatementDepth++;
-    LOG_LN("Current if depth = %d", ctx->ifStatementDepth);
-
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT");
-
-    int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
-    CHECK(status, -1, "Failed to write the condition")
-
-    if(status == 1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP_IF_NOT), 0, "Failed to write REDE_CODE_JUMP_IF_NOT after the function call");
-        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after the function call");
-    }
-
-
-
-    LOG_LN("NOT IMPLEMENTED");
-    return -1;
+    return RedeWriteStatusError;
 }
 
 
@@ -2183,10 +2309,10 @@ int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest)
     RedeCompilationContext ctx = {
         .isAssignment = 0,
         .functionCallDepth = 0,
-        .ifStatementDepth = 0,
+        .isIfStatementArgument = 0,
         .isWhileLoopArgument = 0,
-        .whileLoopBodyDepth = 0,
-        .whileLoopCtx = NULL
+        .whileLoopCtx = NULL,
+        .bracketsBlockDepth = 0,
     };
 
     RedeSourceIterator iterator;
@@ -2221,14 +2347,6 @@ exit_compiler:
     return compilationStatus;
 }
 #endif // REDE_COMPILER_IMPLEMENTATION
-
-
-
-
-
-
-
-
 #if !defined(REDE_STD_H)
 #define REDE_STD_H
 

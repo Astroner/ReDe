@@ -5,7 +5,7 @@
 #include "RedeByteCodes.h"
 
 
-int RedeCompilerHelpers_writeContinue(
+RedeWriteStatus RedeCompilerHelpers_writeContinue(
     RedeDest* dest,
     RedeCompilationContext* ctx
 ) {
@@ -13,24 +13,24 @@ int RedeCompilerHelpers_writeContinue(
 
     if(!ctx->whileLoopCtx) {
         LOG_LN("continue keyword used outside of while-loop");
-        return -1;
+        return RedeWriteStatusError;
     }
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), 0, "Failed to write REDE_CODE_JUMP");
-    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), 0, "Failed to write REDE_DIRECTION_BACKWARD");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP");
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_BACKWARD), "Failed to write REDE_DIRECTION_BACKWARD");
     
     size_t bytesDiff = dest->index - ctx->whileLoopCtx->loopStart + 1;
     if(bytesDiff > 0xFFFF) {
         LOG_LN("The loop is to big to jump backward");
-        return -1;
+        return RedeWriteStatusError;
     }
 
     LOG_LN("Back jump length: %zu", bytesDiff);
 
     unsigned char* bytes = (unsigned char*)&bytesDiff;
 
-    CHECK(RedeDest_writeByte(dest, bytes[0]), 0, "Failed to write the first byte of the back jump");
-    CHECK(RedeDest_writeByte(dest, bytes[1]), 0, "Failed to write the second byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[0]), "Failed to write the first byte of the back jump");
+    CHECK(RedeDest_writeByte(dest, bytes[1]), "Failed to write the second byte of the back jump");
 
-    return 0;
+    return RedeWriteStatusOk;
 }

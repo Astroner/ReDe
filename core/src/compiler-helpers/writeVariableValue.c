@@ -5,7 +5,7 @@
 
 
 
-int RedeCompilerHelpers_writeVariableValue(
+RedeExpressionWriteStatus RedeCompilerHelpers_writeVariableValue(
     size_t identifierStart, 
     size_t identifierLength, 
     RedeSourceIterator* iterator, 
@@ -31,14 +31,14 @@ int RedeCompilerHelpers_writeVariableValue(
     if(!name->isBusy) {
         LOG_LN("Variable is not defined");
 
-        return -2;
+        return RedeExpressionWriteStatusError;
     }
 
     LOG_LN("Variable index: %d", name->index);
 
-    CHECK(RedeDest_writeByte(dest, REDE_TYPE_VAR), 0, "Failed to write REDE_TYPE_VAR");
+    CHECK(RedeDest_writeByte(dest, REDE_TYPE_VAR), "Failed to write REDE_TYPE_VAR");
 
-    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index");
+    CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index");
 
-    return 0;
+    return RedeExpressionWriteStatusOk;
 }

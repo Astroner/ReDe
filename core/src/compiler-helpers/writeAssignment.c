@@ -5,7 +5,7 @@
 
 
 
-int RedeCompilerHelpers_writeAssignment(
+RedeWriteStatus RedeCompilerHelpers_writeAssignment(
     size_t tokenStart, size_t tokenLength, 
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory,
@@ -15,7 +15,7 @@ int RedeCompilerHelpers_writeAssignment(
     LOGS_SCOPE(writeAssignment);
     ctx->isAssignment = 1;
 
-    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer");
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), "Failed to write REDE_CODE_ASSIGN to the buffer");
 
     unsigned long arrayIndex = RedeCompilerHelpers_hash(iterator, tokenStart, tokenLength) % memory->variables.bufferSize;
     LOG_LN("VARIABLE_HASH_TABLE_INDEX: %zu", arrayIndex);
@@ -35,18 +35,28 @@ int RedeCompilerHelpers_writeAssignment(
         }
     )
 
-    CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer", name->index);
+    CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index '%d' to the buffer", name->index);
 
     int status = RedeCompilerHelpers_writeExpression(iterator, memory, dest, ctx);
 
-    CHECK(status, -10, "Failed to write expression");
+    CHECK(status, "Failed to write expression");
 
-    if(status == 1) {
-        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), 0, "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
-        CHECK(RedeDest_writeByte(dest, name->index), 0, "Failed to write variable index '%d' to the buffer after function call", name->index);
-        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), 0, "Failed to write REDE_TYPE_STACK after function call");
+    if(status == RedeExpressionWriteStatusFunction) {
+        CHECK(RedeDest_writeByte(dest, REDE_CODE_ASSIGN), "Failed to write REDE_CODE_ASSIGN to the buffer after function call");
+        CHECK(RedeDest_writeByte(dest, name->index), "Failed to write variable index '%d' to the buffer after function call", name->index);
+        CHECK(RedeDest_writeByte(dest, REDE_TYPE_STACK), "Failed to write REDE_TYPE_STACK after function call");
     }
 
     ctx->isAssignment = 0;
-    return status;
+    
+    switch(status) {
+        case RedeExpressionWriteStatusBracketTerminated:
+            return RedeWriteStatusBracketTerminated;
+        
+        case RedeExpressionWriteStatusEOI:
+            return RedeWriteStatusEOI;
+        
+        default:
+            return RedeWriteStatusOk;
+    }
 }
