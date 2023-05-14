@@ -28,7 +28,7 @@ char* compileDescription[] = {
 char* postCompilationExecutionDescription[] = {
     "Add this flag to enable post compilation execution.",
     "By default rede doesn't execute the code after the compilation,",
-    "but with this flag rede will automaticaly execute generated .rd file",
+    "but with this flag ReDe will automaticaly execute generated .rd file",
     NULL
 };
 
