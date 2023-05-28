@@ -15,7 +15,7 @@
     goto exit_compiler;\
 
 int Rede_compile(RedeSource* src, RedeCompilationMemory* memory, RedeDest* dest) {
-    LOGS_SCOPE(Rede_compile);
+    LOGS_SCOPE();
     int compilationStatus = 0;
 
     RedeCompilationContext ctx = {

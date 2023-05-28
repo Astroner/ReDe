@@ -5,7 +5,8 @@
 
 #if defined(REDE_DO_LOGS)
     #define LOGS_SCOPE(name)\
-        char* logs__scope__name = #name;\
+        const char* logs__scope__name = #name;\
+        if(!logs__scope__name[0]) logs__scope__name = __func__;\
         printf("LOGS '%s'\n", logs__scope__name);\
 
     #define LOG(...)\

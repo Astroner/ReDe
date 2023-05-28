@@ -3,7 +3,7 @@
 
 
 int RedeDest_init(RedeDest* dest) {
-    LOGS_SCOPE(RedeDest_init);
+    LOGS_SCOPE();
 
     dest->index = -1;
 
@@ -28,7 +28,7 @@ int RedeDest_init(RedeDest* dest) {
 }
 
 void RedeDest_destroy(RedeDest* dest) {
-    LOGS_SCOPE(RedeDest_destroy);
+    LOGS_SCOPE();
     if(dest->type == RedeDestTypeFile) {
         fclose(dest->data.file.fp);
     }
