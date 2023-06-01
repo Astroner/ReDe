@@ -67,6 +67,8 @@ int RedeCompilerHelpers_nextTokenIs(char* token, RedeSourceIterator* iterator) {
             return 0;
         }
     }
+
+    return 0;
 }
 
 RedeExpressionWriteStatus RedeCompilerHelpers_writeBoolean(int value, RedeDest* dest) {
