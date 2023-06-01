@@ -64,7 +64,7 @@ If statements allows ou to execute conditional code. It has 3 structures:
  - else - if main condition was falsy then execute this code
  - else if - if main condition was falsy try this condition
 
-You can chain this structures in **if** -> **else if** -> **else**
+You can chain these structures in **if** -> **else if** -> **else** order
 ```ts
 if conditionA() log("A")
 else if conditionB() (
