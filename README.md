@@ -59,7 +59,7 @@ ReDe provides "break" and "continue" keywords to control loop flow:
 
 
 ## If statement
-If statements allows ou to execute conditional code. It has 3 structures:
+If statements allows you to execute conditional code. It has 3 structures:
  - if - if condition is truthy then execute the code
  - else - if main condition was falsy then execute this code
  - else if - if main condition was falsy try this condition
