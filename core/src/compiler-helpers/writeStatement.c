@@ -72,6 +72,12 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 return status;
             }
         } else if(ch == '=' || ch == '(') {
+            if(tokenLength == 0) {
+                LOG_LN("Unexpected char");
+
+                return RedeWriteStatusError;
+            }
+
             LOGS_ONLY(
                 LOG("Token:");
                 for(size_t i = tokenStart; i < tokenStart + tokenLength; i++) {

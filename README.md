@@ -6,14 +6,16 @@ This is a simple scripting language ReDe
      - [Variables](#variables)
      - [Functions](#functions)
      - [While-loop](#while-loop)
+     - [If statement](#if-statement)
      - [Comments](#comment)
 
 
 # Syntax
-Rede simply consists of 4 things:
+Rede simply consists of 5 things:
  - variables
  - functions
  - while loops
+ - if statements
  - comments
 
 ## Variables
@@ -54,6 +56,28 @@ It can be wrapped by brackets if you have multiple statements or can be just one
 ReDe provides "break" and "continue" keywords to control loop flow:
  - break - breaks the loop
  - continue - proceeds to the next iteration
+
+
+## If statement
+If statements allows ou to execute conditional code. It has 3 structures:
+ - if - if condition is truthy then execute the code
+ - else - if main condition was falsy then execute this code
+ - else if - if main condition was falsy try this condition
+
+You can chain this structures in **if** -> **else if** -> **else**
+```ts
+if conditionA() log("A")
+else if conditionB() (
+    log("A failed")
+    log("b")
+) else (
+    loc("C")
+)
+```
+If conditionA fails then the program checks conditionB and if even it fails else block will be executed.
+
+As you can see the structure is really simple: first goes a keyword, then goes the condition and then goes the body, which can be a single statement or multiple ones wrapped by brackets.
+
 
 ## Comment
 Code comment begins with **#** symbol and ends with new line:

@@ -22,20 +22,50 @@ unsigned long RedeCompilerHelpers_hash(
     return hash;
 }
 
-int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
+int RedeCompilerHelpers_isToken(char* token, size_t tokenStart, size_t tokenLength, RedeSourceIterator* iterator) {
 
     size_t i = 0;
     while(1) {
-        if(i == identifierLength) {
+        if(i == tokenLength) {
             return token[i] == '\0';
         }
 
         char tokenChar = token[i];
-        char strChar = RedeSourceIterator_charAt(iterator, identifierStart + i);
+        char strChar = RedeSourceIterator_charAt(iterator, tokenStart + i);
         
         if(tokenChar == '\0' || tokenChar != strChar) return 0;
         
         i++;
+    }
+}
+
+int RedeCompilerHelpers_nextTokenIs(char* token, RedeSourceIterator* iterator) {
+    LOGS_SCOPE(nextTokenIs);
+
+    LOG_LN("Checking for token '%s'", token);
+
+    size_t tokenIndex = 0;
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(iterator))) {
+        LOG_LN("Char: %c(%d)", ch, ch);
+
+        if(ch == ' ' || ch == '\n' || ch == '\r' || ch == 9/* TAB */) {
+            if(tokenIndex > 0) {
+                LOG_LN("Mismatch, reverting %zu token chars", tokenIndex + 1)
+                RedeSourceIterator_moveCursorBack(iterator, tokenIndex + 1);
+                return 0;
+            }
+
+            continue;
+        } else if(ch == token[tokenIndex]) {
+            tokenIndex++;
+            if(token[tokenIndex] == '\0') return 1;
+        } else {
+            LOG_LN("Mismatch, reverting %zu token chars", tokenIndex + 1)
+            RedeSourceIterator_moveCursorBack(iterator, tokenIndex + 1);
+            
+            return 0;
+        }
     }
 }
 

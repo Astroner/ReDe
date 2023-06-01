@@ -123,11 +123,14 @@ RedeWriteStatus RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationCo
 
 RedeWriteStatus RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
+RedeWriteStatus RedeCompilerHelpers_writeElseStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+
 RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src);
 
 
 unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);
 
 int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator);
-
+int RedeCompilerHelpers_nextTokenIs(char* token, RedeSourceIterator* iterator);
 #endif // REDE_COMPILER_HELPERS

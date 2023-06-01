@@ -256,7 +256,7 @@ int Rede_std_gtr(const RedeFunctionArgs* args, RedeVariable* result) {
         return 0;
     }
 
-    Rede_setBoolean(result, Rede_std_toNumber(args->values) < Rede_std_toNumber(args->values + 1));
+    Rede_setBoolean(result, Rede_std_toNumber(args->values) > Rede_std_toNumber(args->values + 1));
 
     return 0;
 }

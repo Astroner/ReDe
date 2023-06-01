@@ -253,6 +253,40 @@ void parsesComments() {
     )
 }
 
+void compilesIfElse() {
+    MATCH(
+        "if true a = 2 "
+        "else a = 3",
+
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 11, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 7, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 64, 64,
+        REDE_CODE_END
+    )
+}
+
+void compilesElseIf() {
+    MATCH(
+        "if true a = 2 "
+        "else if true a = 2 "
+        "else if true a = 2 "
+        "else a = 2",
+
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 11, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 41, 0,
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 11, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 24, 0,
+        REDE_CODE_JUMP_IF_NOT, REDE_TYPE_BOOL, 1, REDE_DIRECTION_FORWARD, 11, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_JUMP, REDE_DIRECTION_FORWARD, 7, 0,
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_END
+    )
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
@@ -265,6 +299,7 @@ int main() {
     TEST(compilesContinueWhileLoop);
     TEST(compilesSimpleIfCase);
     TEST(parsesComments);
+    TEST(compilesElseIf);
 
     printf("\n");
     return 0;

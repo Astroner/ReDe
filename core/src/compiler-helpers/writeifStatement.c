@@ -61,7 +61,7 @@ RedeWriteStatus RedeCompilerHelpers_writeIfStatement(
 
             size_t diff = dest->index - (firstJumpSizeByte + 1);
             if(diff > 0xFFFF) {
-                LOG_LN("The if body is to big to jump forward");
+                LOG_LN("The if body is to big to jump over");
                 return RedeWriteStatusError;
             }
 
@@ -71,6 +71,29 @@ RedeWriteStatus RedeCompilerHelpers_writeIfStatement(
 
             CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 0, diffBytes[0]), "Failed to write jump size first byte");
             CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 1, diffBytes[1]), "Failed to write jump size second byte");
+
+
+            RedeWriteStatus continuationStatus;
+            size_t lastIndex = dest->index;
+            CHECK(continuationStatus = RedeCompilerHelpers_writeElseStatement(iterator, memory, dest, ctx), "Failed to write else statement");
+
+            if(lastIndex != dest->index) {
+                LOG_LN("Got else statement so need to adjust REDE_CODE_JUMP_IF_NOT jump size"); // to handle new 4 jump bytes
+
+                diff += 4;
+
+                LOG_LN("New jump size: %zu", diff);
+
+                if(diff > 0xFFFF) {
+                    LOG_LN("The if body is to big to jump over after adjustment");
+                    return RedeWriteStatusError;
+                }
+
+                CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 0, diffBytes[0]), "Failed to adjust jump size first byte");
+                CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 1, diffBytes[1]), "Failed to adjust jump size second byte");
+
+                return continuationStatus;
+            }
 
             return resultStatus;
         }

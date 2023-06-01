@@ -23,9 +23,9 @@
          - [x] Add REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT for code navigation
      - [x] Implement booleans
      - [x] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
- - [ ] Implement new language features
+ - [x] Implement new language features
      - [x] Implement booleans
-     - [ ] Implement if-cases
+     - [x] Implement if-cases
      - [x] Implement while loops
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Design meta-information concept to provide useful information from compiler to runtime

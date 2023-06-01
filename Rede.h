@@ -1374,13 +1374,16 @@ RedeWriteStatus RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationCo
 
 RedeWriteStatus RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
+RedeWriteStatus RedeCompilerHelpers_writeElseStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
+
+
 RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src);
 
 
 unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);
 
 int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator);
-
+int RedeCompilerHelpers_nextTokenIs(char* token, RedeSourceIterator* iterator);
 #endif // REDE_COMPILER_HELPERS
 
 
@@ -1426,20 +1429,50 @@ unsigned long RedeCompilerHelpers_hash(
     return hash;
 }
 
-int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t identifierLength, RedeSourceIterator* iterator) {
+int RedeCompilerHelpers_isToken(char* token, size_t tokenStart, size_t tokenLength, RedeSourceIterator* iterator) {
 
     size_t i = 0;
     while(1) {
-        if(i == identifierLength) {
+        if(i == tokenLength) {
             return token[i] == '\0';
         }
 
         char tokenChar = token[i];
-        char strChar = RedeSourceIterator_charAt(iterator, identifierStart + i);
+        char strChar = RedeSourceIterator_charAt(iterator, tokenStart + i);
         
         if(tokenChar == '\0' || tokenChar != strChar) return 0;
         
         i++;
+    }
+}
+
+int RedeCompilerHelpers_nextTokenIs(char* token, RedeSourceIterator* iterator) {
+    LOGS_SCOPE(nextTokenIs);
+
+    LOG_LN("Checking for token '%s'", token);
+
+    size_t tokenIndex = 0;
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(iterator))) {
+        LOG_LN("Char: %c(%d)", ch, ch);
+
+        if(ch == ' ' || ch == '\n' || ch == '\r' || ch == 9/* TAB */) {
+            if(tokenIndex > 0) {
+                LOG_LN("Mismatch, reverting %zu token chars", tokenIndex + 1)
+                RedeSourceIterator_moveCursorBack(iterator, tokenIndex + 1);
+                return 0;
+            }
+
+            continue;
+        } else if(ch == token[tokenIndex]) {
+            tokenIndex++;
+            if(token[tokenIndex] == '\0') return 1;
+        } else {
+            LOG_LN("Mismatch, reverting %zu token chars", tokenIndex + 1)
+            RedeSourceIterator_moveCursorBack(iterator, tokenIndex + 1);
+            
+            return 0;
+        }
     }
 }
 
@@ -1571,6 +1604,62 @@ RedeWriteStatus RedeCompilerHelpers_writeContinue(
     CHECK(RedeDest_writeByte(dest, bytes[1]), "Failed to write the second byte of the back jump");
 
     return RedeWriteStatusOk;
+}
+
+
+RedeWriteStatus RedeCompilerHelpers_writeElseStatement(
+    RedeSourceIterator* src,
+    RedeCompilationMemory* memory,
+    RedeDest* dest,
+    RedeCompilationContext* ctx
+) {
+    LOGS_SCOPE(writeElseStatement);
+    
+    if(!RedeCompilerHelpers_nextTokenIs("else", src)) {
+        LOG_LN("Not 'else' token");
+        return RedeWriteStatusOk;
+    }
+
+    LOG_LN("Else statement");
+
+    // Jump after if-statement to skip the else body
+    CHECK(RedeDest_writeByte(dest, REDE_CODE_JUMP), "Failed to write REDE_CODE_JUMP after if-statement");
+    CHECK(RedeDest_writeByte(dest, REDE_DIRECTION_FORWARD), "Failed to write REDE_DIRECTION_FORWARD after if-statement");
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write jump size first byte placeholder after if-statement");
+    size_t jumpSizeStart = dest->index;
+    CHECK(RedeDest_writeByte(dest, 0), "Failed to write jump size second byte placeholder after if-statement");
+
+    int isMultipleStatements = RedeCompilerHelpers_nextTokenIs("(", src);
+
+    RedeWriteStatus resultStatus = RedeWriteStatusOk;
+
+    if(isMultipleStatements) {
+        LOG_LN("Multiple statements");
+
+        ctx->bracketsBlockDepth++;
+        CHECK(RedeCompilerHelpers_writeStatements(src, memory, dest, ctx), "failed to parse statements");
+        ctx->bracketsBlockDepth--;
+    } else {
+        LOG_LN("Single statement");
+        CHECK(resultStatus = RedeCompilerHelpers_writeStatement(src, memory, dest, ctx), "Failed to parse statement");
+    }
+
+    size_t diff = dest->index - (jumpSizeStart + 1);
+
+    LOG_LN("Jump size: %zu bytes", diff);
+
+    if(diff > 0xFFFF) {
+        LOG_LN("Else body is too big to jump over");
+
+        return RedeWriteStatusError;
+    }
+
+    unsigned char* diffBytes = (unsigned char*)&diff;
+
+    CHECK(RedeDest_writeByteAt(dest, jumpSizeStart + 0, diffBytes[0]), "Failed to write jump size first byte");
+    CHECK(RedeDest_writeByteAt(dest, jumpSizeStart + 1, diffBytes[1]), "Failed to write jump size second byte");
+
+    return resultStatus;
 }
 
 
@@ -1925,6 +2014,12 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 return status;
             }
         } else if(ch == '=' || ch == '(') {
+            if(tokenLength == 0) {
+                LOG_LN("Unexpected char");
+
+                return RedeWriteStatusError;
+            }
+
             LOGS_ONLY(
                 LOG("Token:");
                 for(size_t i = tokenStart; i < tokenStart + tokenLength; i++) {
@@ -2304,7 +2399,7 @@ RedeWriteStatus RedeCompilerHelpers_writeIfStatement(
 
             size_t diff = dest->index - (firstJumpSizeByte + 1);
             if(diff > 0xFFFF) {
-                LOG_LN("The if body is to big to jump forward");
+                LOG_LN("The if body is to big to jump over");
                 return RedeWriteStatusError;
             }
 
@@ -2314,6 +2409,29 @@ RedeWriteStatus RedeCompilerHelpers_writeIfStatement(
 
             CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 0, diffBytes[0]), "Failed to write jump size first byte");
             CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 1, diffBytes[1]), "Failed to write jump size second byte");
+
+
+            RedeWriteStatus continuationStatus;
+            size_t lastIndex = dest->index;
+            CHECK(continuationStatus = RedeCompilerHelpers_writeElseStatement(iterator, memory, dest, ctx), "Failed to write else statement");
+
+            if(lastIndex != dest->index) {
+                LOG_LN("Got else statement so need to adjust REDE_CODE_JUMP_IF_NOT jump size"); // to handle new 4 jump bytes
+
+                diff += 4;
+
+                LOG_LN("New jump size: %zu", diff);
+
+                if(diff > 0xFFFF) {
+                    LOG_LN("The if body is to big to jump over after adjustment");
+                    return RedeWriteStatusError;
+                }
+
+                CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 0, diffBytes[0]), "Failed to adjust jump size first byte");
+                CHECK(RedeDest_writeByteAt(dest, firstJumpSizeByte + 1, diffBytes[1]), "Failed to adjust jump size second byte");
+
+                return continuationStatus;
+            }
 
             return resultStatus;
         }
@@ -2635,7 +2753,7 @@ int Rede_std_gtr(const RedeFunctionArgs* args, RedeVariable* result) {
         return 0;
     }
 
-    Rede_setBoolean(result, Rede_std_toNumber(args->values) < Rede_std_toNumber(args->values + 1));
+    Rede_setBoolean(result, Rede_std_toNumber(args->values) > Rede_std_toNumber(args->values + 1));
 
     return 0;
 }
