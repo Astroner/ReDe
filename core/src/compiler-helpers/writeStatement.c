@@ -60,6 +60,10 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                     LOG_LN("If statement");
 
                     CHECK(status = RedeCompilerHelpers_writeIfStatement(iterator, memory, dest, ctx), "Failed to write if-statement");
+                } else if(RedeCompilerHelpers_isToken("else", tokenStart, tokenLength, iterator)) {
+                    LOG_LN("Unexpected 'else' keyword");
+
+                    return RedeWriteStatusError;
                 }
             }
 
