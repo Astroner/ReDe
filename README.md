@@ -65,7 +65,7 @@ If statements allows you to execute conditional code. It has 3 structures:
  - else if - if main condition was falsy try this condition
 
 You can chain these structures in **if** -> **else if** -> **else** order
-```ts
+```python
 if conditionA() log("A")
 else if conditionB() (
     log("A failed")
