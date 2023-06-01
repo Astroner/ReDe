@@ -81,6 +81,7 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
 
                 return RedeWriteStatusError;
             }
+            // TODO: add keywords handling
 
             LOGS_ONLY(
                 LOG("Token:");
