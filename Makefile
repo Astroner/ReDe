@@ -21,19 +21,19 @@ COMPILER_LIB_NAME=RedeCompiler.h
 STD_LIB_NAME=RedeSTD.h
 GENERAL_LIB_NAME=Rede.h
 
-# .PHONY: cli
-# cli: $(CLI_EXECUTABLE)
-# 	$(CLI_EXECUTABLE) $(EFLAGS)
+.PHONY: cli
+cli: $(CLI_EXECUTABLE)
+	$(CLI_EXECUTABLE) $(EFLAGS)
 
-# .PHONY: cli
-# build-cli: $(CLI_EXECUTABLE)
-# 	echo "Done"
+.PHONY: cli
+build-cli: $(CLI_EXECUTABLE)
+	echo "Done"
 
-# $(CLI_EXECUTABLE): $(CLI_OBJECTS)
-# 	$(CC) $(CFLAGS) -o $(CLI_EXECUTABLE) $^
+$(CLI_EXECUTABLE): $(CLI_OBJECTS)
+	$(CC) $(CFLAGS) -o $(CLI_EXECUTABLE) $^
 
-# $(CLI_OBJECTS): %.o: %.c $(GENERAL_LIB_NAME)
-# 	$(CC) $(CFLAGS) -c -o $@ -I$(CLI_HEADERS) -I./ -Wall -Wextra -std=c99 -pedantic $<
+$(CLI_OBJECTS): %.o: %.c $(GENERAL_LIB_NAME)
+	$(CC) $(CFLAGS) -c -o $@ -I$(CLI_HEADERS) -I./ -Wall -Wextra -std=c99 -pedantic $<
 
 
 
