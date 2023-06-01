@@ -32,6 +32,9 @@ RedeExpressionWriteStatus RedeCompilerHelpers_writeExpression(
             LOG_LN("Brackets block end");
             
             return RedeExpressionWriteStatusBracket;
+        } else if (ch == '#') {
+            LOG_LN("Comment start");
+            RedeCompilerHelpers_parseComment(iterator);
         } else {
             LOG_LN("Unexpected token");
             return RedeExpressionWriteStatusError;

@@ -6,13 +6,15 @@ This is a simple scripting language ReDe
      - [Variables](#variables)
      - [Functions](#functions)
      - [While-loop](#while-loop)
+     - [Comments](#comment)
 
 
 # Syntax
-Rede simply consists of 3 things:
+Rede simply consists of 4 things:
  - variables
  - functions
  - while loops
+ - comments
 
 ## Variables
 To define a variable just write its name and assign a value to it:
@@ -52,3 +54,16 @@ It can be wrapped by brackets if you have multiple statements or can be just one
 ReDe provides "break" and "continue" keywords to control loop flow:
  - break - breaks the loop
  - continue - proceeds to the next iteration
+
+## Comment
+Code comment begins with **#** symbol and ends with new line:
+```python
+# Log function
+log(
+    2 # First arg
+    3 # Second arg
+    # Args end
+)
+
+# Code end
+```

@@ -88,6 +88,10 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), "Failed to clear the stack");
                 return RedeWriteStatusOk;
             }
+        } else if(ch == '#') {
+            LOG_LN("Comment start")
+            RedeCompilerHelpers_parseComment(iterator);
+            return RedeWriteStatusOk;
         } else {
             LOG_LN("Unexpected char");
             return RedeWriteStatusError;

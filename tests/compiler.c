@@ -216,6 +216,43 @@ void compilesSimpleIfCase() {
     )
 }
 
+void parsesComments() {
+    MATCH(
+        "# comment",
+
+        REDE_CODE_END
+    )
+
+    MATCH(
+        "# comment\n"
+        "a = 2",
+
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_END
+    )
+
+    MATCH(
+        "a = 2 # comment",
+
+        REDE_CODE_ASSIGN, 0, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_END
+    )
+
+    MATCH(
+        "log( "
+            "2 # Random number\n"
+            "3 # Second random number\n"
+            "# Arguments end\n"
+        ")",
+
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 0, 64,
+        REDE_CODE_STACK_PUSH, REDE_TYPE_NUMBER, 0, 0, 64, 64,
+        REDE_CODE_CALL, 3, 'l', 'o', 'g', 2,
+        REDE_CODE_STACK_CLEAR,
+        REDE_CODE_END
+    )
+}
+
 int main() {
     printf("\nCompiler tests:\n");
     TEST(compilesAssignment);
@@ -227,6 +264,7 @@ int main() {
     TEST(compilesBreakWhileLoop);
     TEST(compilesContinueWhileLoop);
     TEST(compilesSimpleIfCase);
+    TEST(parsesComments);
 
     printf("\n");
     return 0;

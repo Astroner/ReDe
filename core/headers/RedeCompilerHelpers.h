@@ -123,7 +123,7 @@ RedeWriteStatus RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationCo
 
 RedeWriteStatus RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
-
+RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src);
 
 
 unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);

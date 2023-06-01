@@ -585,7 +585,7 @@ RedeWriteStatus RedeCompilerHelpers_writeBreak(RedeDest* dest, RedeCompilationCo
 
 RedeWriteStatus RedeCompilerHelpers_writeIfStatement(RedeSourceIterator* iterator, RedeCompilationMemory* memory, RedeDest* dest, RedeCompilationContext* ctx);
 
-
+RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src);
 
 
 unsigned long RedeCompilerHelpers_hash(RedeSourceIterator* iterator, size_t identifierStart, size_t identifierLength);
@@ -594,6 +594,30 @@ int RedeCompilerHelpers_isToken(char* token, size_t identifierStart, size_t iden
 
 #endif // REDE_COMPILER_HELPERS
 
+
+
+RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src) {
+    LOGS_SCOPE(parseComment);
+
+    char ch;
+    while((ch = RedeSourceIterator_nextChar(src))) {
+        LOG_LN("Char: '%c'(%d)", ch, ch);
+
+        int end = 0;
+
+        switch(ch) {
+            case '\r':
+            case '\n':
+                LOG_LN("End of the comment");
+                end = 1;
+                break;
+        }
+
+        if(end) break;
+    }
+
+    return RedeWriteStatusOk;
+}
 
 
 unsigned long RedeCompilerHelpers_hash(
@@ -788,6 +812,9 @@ RedeExpressionWriteStatus RedeCompilerHelpers_writeExpression(
             LOG_LN("Brackets block end");
             
             return RedeExpressionWriteStatusBracket;
+        } else if (ch == '#') {
+            LOG_LN("Comment start");
+            RedeCompilerHelpers_parseComment(iterator);
         } else {
             LOG_LN("Unexpected token");
             return RedeExpressionWriteStatusError;
@@ -1125,6 +1152,10 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), "Failed to clear the stack");
                 return RedeWriteStatusOk;
             }
+        } else if(ch == '#') {
+            LOG_LN("Comment start")
+            RedeCompilerHelpers_parseComment(iterator);
+            return RedeWriteStatusOk;
         } else {
             LOG_LN("Unexpected char");
             return RedeWriteStatusError;
