@@ -27,6 +27,7 @@
      - [x] Implement booleans
      - [x] Implement if-cases
      - [x] Implement while loops
+ - [ ] Move runtime memory management to separated entity
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Design meta-information concept to provide useful information from compiler to runtime
  - [ ] Implement meta-info on runtime level
