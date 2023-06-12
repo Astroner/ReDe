@@ -25,6 +25,7 @@
      - [x] Implement REDE_CODE_JUMP, REDE_CODE_JUMP_IF and REDE_CODE_JUMP_IF_NOT
  - [x] Implement new language features
      - [x] Implement booleans
+     - [x] Implement code comments
      - [x] Implement if-cases
      - [x] Implement while loops
  - [ ] Move runtime memory management to separated entity
