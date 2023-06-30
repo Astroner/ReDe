@@ -28,7 +28,7 @@ let size = BigInt(functions.length);
 const indexToName = new Map();
 
 while(true) {
-    let success = 1;
+    let success = true;
     for(let funcName of functions) {
         const funcIndex = hash(funcName) % size;
         if(indexToName.has(funcIndex)) {

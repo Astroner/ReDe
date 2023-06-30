@@ -134,7 +134,7 @@ Represents a relative cursor move.
  - **DIRECTION** - **1 byte** - **0x00** to move forward and anything else to move backwards
      - **REDE_DIRECTION_FORWARD** - **0x00**
      - **REDE_DIRECTION_BACKWARDS** - **0x01**
- - **CURSOR_MOVE** - **2 bytes** - number of bytes to move, in format of C integer. high byte goes first
+ - **CURSOR_MOVE** - **2 bytes** - number of bytes to move in little-endian format
      - **0x01 0x00** - 1
      - **0x00 0x01** - 256 
 
