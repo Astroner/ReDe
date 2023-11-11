@@ -1,4 +1,4 @@
-CC=gcc-12
+CC=gcc-13
 
 # Core code
 CORE_STD_HASH_TABLE_FILE=core/RedeStdTable.gen.c
