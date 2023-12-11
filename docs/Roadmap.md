@@ -28,6 +28,10 @@
      - [x] Implement code comments
      - [x] Implement if-cases
      - [x] Implement while loops
+ - [ ] Move std functions into macros and provide ways to override them to make standalone
+     - [ ] Fix tests to be more standalone-like
+ - [ ] Add full documentation about in-code/CLI usage
+ - [ ] Move from "fixed number of variables" model to stack based model
  - [ ] Move runtime memory management to separated entity
  - [ ] Improve runtime strings management (Probably apply Baal.h to do block-by-block allocation)
  - [ ] Design meta-information concept to provide useful information from compiler to runtime

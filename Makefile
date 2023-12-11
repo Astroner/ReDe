@@ -144,19 +144,10 @@ libs: $(RUNTIME_LIB_NAME) $(COMPILER_LIB_NAME) $(STD_LIB_NAME) $(GENERAL_LIB_NAM
 
 .PHONY: tests
 tests: libs
-	$(CC) -o tests/runtime.test tests/runtime.c
-	$(CC) -o tests/compiler.test tests/compiler.c
-	$(CC) -o tests/std.test tests/std.c
-	$(CC) -o tests/general.test tests/general.c
-
-	tests/runtime.test
-	tests/compiler.test
-	tests/std.test
-	tests/general.test
-
-	rm -f tests/runtime.test tests/compiler.test tests/std.test tests/general.test tests/test.rd
-
-
+	$(CC) -o ./run-tests -std=c99 -Wall -Wextra -pedantic tests/main.test.c
+	./run-tests
+	rm -f ./run-tests
+	
 
 .PHONY: clean
 clean:
