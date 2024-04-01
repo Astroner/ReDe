@@ -1400,6 +1400,7 @@ RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src) {
         switch(ch) {
             case '\r':
             case '\n':
+            case '#':
                 LOG_LN("End of the comment");
                 end = 1;
                 break;
@@ -1968,7 +1969,8 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
 
         int isBracketSeparator = ctx->bracketsBlockDepth > 0 && ch == ')';
 
-        if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+
+        if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) { // Registering token start
             if(tokenEnded) {
                 LOG_LN("Unexpected char '%c', expected function call or assignment", ch);
                 return -1;
@@ -1980,14 +1982,16 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 tokenEnded = 0;
             }
             tokenLength++;
-        } else if(
+        } else if( // Registering token end and handling keywords or just skipping the white spaces
             ch == ' ' || ch == '\n' || ch == '\r' 
             ||
             isBracketSeparator
         ) {
-            RedeWriteStatus status = -20;
-            if(!tokenEnded && !lookingForTokenStart) {
+            RedeWriteStatus status = -20; // Default value
+            if(!tokenEnded && !lookingForTokenStart) { // If we are actually looking for token end
+
                 tokenEnded = 1;
+
                 if(RedeCompilerHelpers_isToken("continue", tokenStart, tokenLength, iterator)) {
                     LOG_LN("Keyword: continue");
 
@@ -2019,7 +2023,7 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
             if(status != -20) {
                 return status;
             }
-        } else if(ch == '=' || ch == '(') {
+        } else if(ch == '=' || ch == '(') { // Handling assignments and function calls
             if(tokenLength == 0) {
                 LOG_LN("Unexpected char");
 
@@ -2043,10 +2047,9 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
                 CHECK(RedeDest_writeByte(dest, REDE_CODE_STACK_CLEAR), "Failed to clear the stack");
                 return RedeWriteStatusOk;
             }
-        } else if(ch == '#') {
+        } else if(ch == '#') { // parsing comments
             LOG_LN("Comment start")
             RedeCompilerHelpers_parseComment(iterator);
-            return RedeWriteStatusOk;
         } else {
             LOG_LN("Unexpected char");
             return RedeWriteStatusError;
@@ -2062,7 +2065,7 @@ RedeWriteStatus RedeCompilerHelpers_writeStatement(
     return RedeWriteStatusError;
 }
 
-
+// Iterate over the source and write statements one by one
 RedeWriteStatus RedeCompilerHelpers_writeStatements(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
@@ -2075,6 +2078,7 @@ RedeWriteStatus RedeCompilerHelpers_writeStatements(
         int status = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
         CHECK(status, "Failed to write a statement");
 
+        // We do essentials the same but with different statement terminators
         if(status == RedeWriteStatusBracketTerminated) {
             LOG_LN("Last statement was bracket terminated");
             return RedeWriteStatusOk;
@@ -2504,14 +2508,6 @@ exit_compiler:
     return compilationStatus;
 }
 #endif // REDE_COMPILER_IMPLEMENTATION
-
-
-
-
-
-
-
-
 #if !defined(REDE_STD_H)
 #define REDE_STD_H
 

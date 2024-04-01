@@ -4,7 +4,7 @@
 #include "RedeCompiler.h"
 
 
-
+// Iterate over the source and write statements one by one
 RedeWriteStatus RedeCompilerHelpers_writeStatements(
     RedeSourceIterator* iterator, 
     RedeCompilationMemory* memory, 
@@ -17,6 +17,7 @@ RedeWriteStatus RedeCompilerHelpers_writeStatements(
         int status = RedeCompilerHelpers_writeStatement(iterator, memory, dest, ctx);
         CHECK(status, "Failed to write a statement");
 
+        // We do essentials the same but with different statement terminators
         if(status == RedeWriteStatusBracketTerminated) {
             LOG_LN("Last statement was bracket terminated");
             return RedeWriteStatusOk;

@@ -291,8 +291,8 @@ DESCRIBE(compiler) {
         )
 
         EXPECT(
-            "log( "
-                "2 # Random number\n"
+            "log #Function to log# ( "
+                "# Random number # 2 \n"
                 "3 # Second random number\n"
                 "# Arguments end\n"
             ")"

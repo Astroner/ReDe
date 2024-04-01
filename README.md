@@ -80,7 +80,7 @@ As you can see the structure is really simple: first goes a keyword, then goes t
 
 
 ## Comment
-Code comment begins with **#** symbol and ends with new line:
+Code comment begins with **#** symbol and ends with new line or with **#**:
 ```python
 # Log function
 log(

@@ -17,6 +17,7 @@ RedeWriteStatus RedeCompilerHelpers_parseComment(RedeSourceIterator* src) {
         switch(ch) {
             case '\r':
             case '\n':
+            case '#':
                 LOG_LN("End of the comment");
                 end = 1;
                 break;
