@@ -184,67 +184,77 @@
     TESTS_info->status = 0;\
     TESTS_STD_PRINT("\x1B[1;35mTODO: it "LABEL"\x1B[0m\n");
 
+#define MATCHER_VALUE localPassedValue
 #define EXPECT(VALUE)\
     {\
-        __typeof__((VALUE)) localPassedValue = VALUE;\
+        __typeof__((VALUE)) MATCHER_VALUE = VALUE;\
         TESTS_info->failLine = __LINE__;\
         TESTS_info->testText = #VALUE;\
         TESTS_info->isNot = 0;\
 
 #define NOT\
-        TESTS_info->isNot = 1;\
+    TESTS_info->isNot = 1;\
 
-#define TO_BE(EXPECTED)\
-        if((localPassedValue != (EXPECTED)) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = #EXPECTED;\
-            TESTS_info->operatorText = "TO_BE";\
-            return;\
-        }\
+
+// Mather utils
+#define CREATE_MATCHER(MATCHER_NAME, ...)\
+    TESTS_info->operatorText = #MATCHER_NAME;\
+    __VA_ARGS__;\
     };\
 
-#define TO_BE_TRUTHY\
-        if((!localPassedValue) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = NULL;\
-            TESTS_info->operatorText = "TO_BE_TRUTHY";\
-            return;\
-        }\
-    };\
+#define EXPECTED(string) string
+#define NO_EXPECTED NULL
+#define MATCHER_FAIL(EXPECTED_TEXT)\
+    TESTS_info->status = -1;\
+    TESTS_info->expectText = EXPECTED_TEXT;\
+    return;\
 
-#define TO_BE_FALSY\
-        if((!localPassedValue) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = NULL;\
-            TESTS_info->operatorText = "TO_BE_FALSY";\
-            return;\
-        }\
-    };\
+#define MATHER_IS_NOT TESTS_info->isNot
+
+#define PASSES_IF(CONDITION) !(CONDITION)
+#define FAILS_IF(CONDITION) (CONDITION)
+
+#define MATCHER_CONDITION(CONDITION) if((CONDITION) ^ MATHER_IS_NOT)
+#define MATCHER_CONDITION_S(CONDITION, EXPECTED_TEXT)\
+    MATCHER_CONDITION(CONDITION) MATCHER_FAIL(EXPECTED_TEXT);\
+
+#define CREATE_MATCHER_S(MATCHER_NAME, CONDITION, EXPECTED_TEXT)\
+    CREATE_MATCHER(MATCHER_NAME,\
+        MATCHER_CONDITION_S(CONDITION, EXPECTED_TEXT)\
+    )
+
+
+// MATCHERS
+#define TO_BE(VALUE) CREATE_MATCHER_S(TO_BE, PASSES_IF(MATCHER_VALUE == (VALUE)), EXPECTED(#VALUE))
+
+#define TO_BE_TRUTHY CREATE_MATCHER_S(TO_BE_TRUTHY, FAILS_IF(!MATCHER_VALUE), NO_EXPECTED)
+
+#define TO_BE_FALSY CREATE_MATCHER_S(TO_BE_FALSY, PASSES_IF(!MATCHER_VALUE), NO_EXPECTED)
 
 #define TO_BE_STRING(EXPECTED_STRING)\
-        if((TESTS_STD_STRCMP(localPassedValue, EXPECTED_STRING) != 0) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = #EXPECTED_STRING;\
-            TESTS_info->operatorText = "TO_BE_STRING";\
-            return;\
-        }\
-    };\
+    CREATE_MATCHER_S(\
+        TO_BE_STRING,\
+        PASSES_IF(TESTS_STD_STRCMP(MATCHER_VALUE, EXPECTED_STRING) == 0),\
+        EXPECTED(#EXPECTED_STRING)\
+    )
 
-#define TO_BE_NULL\
-        if((localPassedValue != NULL) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = NULL;\
-            TESTS_info->operatorText = "TO_BE_NULL";\
-            return;\
-        }\
-    };\
+#define TO_BE_NULL CREATE_MATCHER_S(TO_BE_NULL, PASSES_IF(MATCHER_VALUE == NULL), NO_EXPECTED)
 
 #define TO_HAVE_BYTES(BYTES, LENGTH)\
-        if((TESTS_STD_MEMCMP(localPassedValue, BYTES, LENGTH) != 0) ^ TESTS_info->isNot) {\
-            TESTS_info->status = -1;\
-            TESTS_info->expectText = #BYTES", "#LENGTH;\
-            TESTS_info->operatorText = "TO_HAVE_BYTES";\
-        }\
-    };\
+    CREATE_MATCHER_S(\
+        TO_HAVE_BYTES, \
+        PASSES_IF(TESTS_STD_MEMCMP(MATCHER_VALUE, BYTES, LENGTH) == 0),\
+        EXPECTED(#BYTES", "#LENGTH)\
+    )
 
+#define TO_HAVE_RAW_BYTES(BYTE, ...)\
+    CREATE_MATCHER(TO_HAVE_RAW_BYTES,\
+        unsigned char buffer[] = { BYTE, __VA_ARGS__ };\
+        for(size_t i = 0; i < sizeof(buffer); i++) {\
+            MATCHER_CONDITION(PASSES_IF(buffer[i] == MATCHER_VALUE[i])) {\
+                printf("Got bytes mismatch at position %zu. Expected: %d, Got: %d\n", i, buffer[i], MATCHER_VALUE[i]);\
+                MATCHER_FAIL("{ "#BYTE", "#__VA_ARGS__" }")\
+            }\
+        }\
+    )
 #endif // TESTS_H

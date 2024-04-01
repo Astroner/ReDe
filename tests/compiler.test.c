@@ -9,70 +9,73 @@
 #include "../core/headers/RedeByteCodes.h"
 
 #define TO_BE_COMPILED_TO(BYTECODE, ...)\
+    CREATE_MATCHER(TO_BE_COMPILED_TO,\
         unsigned char buffer[] = { BYTECODE, __VA_ARGS__ };\
-        Rede_createStringSource(src, localPassedValue);\
+        Rede_createStringSource(src, MATCHER_VALUE);\
         Rede_createCompilationMemory(memory, 100);\
         Rede_createBufferDest(dest, 256);\
-        assert(Rede_compile(src, memory, dest) == 0);\
+        int status = Rede_compile(src, memory, dest);\
+        if(status != 0) {\
+            printf("Failed to compile: %d\n", status);\
+            MATCHER_FAIL(NO_EXPECTED);\
+        }\
         for(size_t i = 0; i < sizeof(buffer); i++) {\
-            if(buffer[i] != dest->data.buffer.buffer[i]) {\
+            MATCHER_CONDITION(PASSES_IF(buffer[i] == dest->data.buffer.buffer[i])) {\
                 printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", i, buffer[i], dest->data.buffer.buffer[i]);\
-                TESTS_info->status = -1;\
-                TESTS_info->expectText = "{ "#BYTECODE", "#__VA_ARGS__" }";\
-                TESTS_info->operatorText = "TO_BE_COMPILED_TO";\
+                MATCHER_FAIL(EXPECTED("{ "#BYTECODE", "#__VA_ARGS__" }"));\
             }\
         }\
-    };\
+    )
 
 
 #define TO_BE_COMPILED_TO_ARR(ARR, SIZE)\
-        Rede_createStringSource(src, localPassedValue);\
+    CREATE_MATCHER(TO_BE_COMPILED_TO_ARR,\
+        Rede_createStringSource(src, MATCHER_VALUE);\
         Rede_createCompilationMemory(memory, 100);\
         Rede_createBufferDest(dest, 256);\
-        assert(Rede_compile(src, memory, dest) == 0);\
+        int status = Rede_compile(src, memory, dest);\
+        if(status != 0) {\
+            printf("Failed to compile: %d\n", status);\
+            MATCHER_FAIL(NO_EXPECTED);\
+        }\
         for(size_t i = 0; i < SIZE; i++) {\
-            if(ARR[i] != dest->data.buffer.buffer[i]) {\
+            MATCHER_CONDITION(PASSES_IF(ARR[i] == dest->data.buffer.buffer[i])) {\
                 printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", i, ARR[i], dest->data.buffer.buffer[i]);\
-                TESTS_info->status = -1;\
-                TESTS_info->expectText = #ARR", "#SIZE;\
-                TESTS_info->operatorText = "TO_BE_COMPILED_TO";\
+                MATCHER_FAIL(EXPECTED(#ARR", "#SIZE));\
             }\
         }\
-    };\
-
-#define TO_HAVE_RAW_BYTES(BYTE, ...)\
-        unsigned char buffer[] = { BYTE, __VA_ARGS__ };\
-        for(size_t i = 0; i < sizeof(buffer); i++) {\
-            if(buffer[i] != localPassedValue[i]) {\
-                printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", i, buffer[i], localPassedValue[i]);\
-                TESTS_info->status = -1;\
-                TESTS_info->expectText = "{ "#BYTE", "#__VA_ARGS__" }";\
-                TESTS_info->operatorText = "TO_HAVE_RAW_BYTES";\
-            }\
-        }\
-    };\
+    )
 
 #define FILE_TO_HAVE_CONTENT_BYTES(BYTE, ...)\
+    CREATE_MATCHER(FILE_TO_HAVE_CONTENT_BYTES, \
         unsigned char expect[] = { BYTE, __VA_ARGS__ };\
-        FILE* f = fopen(localPassedValue, "rb");\
-        assert(f != NULL);\
+        FILE* f = fopen(MATCHER_VALUE, "rb");\
+        MATCHER_CONDITION(FAILS_IF(f == NULL)) {\
+            printf("Failed to open %s\n", MATCHER_VALUE);\
+            MATCHER_FAIL(NO_EXPECTED);\
+        }\
         size_t index = 0;\
         int el;\
         while((el = getc(f)) != EOF) {\
-            if(expect[index] != el) {\
+            MATCHER_CONDITION(PASSES_IF(expect[index] == el)) {\
                 printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", index, expect[index], el);\
-                TESTS_info->status = -1;\
-                TESTS_info->expectText = "{ "#BYTE", "#__VA_ARGS__" }";\
-                TESTS_info->operatorText = "FILE_TO_HAVE_CONTENT_BYTES";\
                 fclose(f);\
-                return;\
+                MATCHER_FAIL("{ "#BYTE", "#__VA_ARGS__" }");\
             }\
             index++;\
         }\
-        assert(el == EOF);\
-        assert(index == sizeof(expect) / sizeof(expect[0]));\
+        MATCHER_CONDITION(PASSES_IF(el == EOF)) {\
+            printf("Could not reach EOF");\
+            fclose(f);\
+            MATCHER_FAIL(NO_EXPECTED);\
+        }\
+        MATCHER_CONDITION(PASSES_IF(index == sizeof(expect) / sizeof(expect[0]))) {\
+            printf("Could not reach end of the buffer");\
+            fclose(f);\
+            MATCHER_FAIL(NO_EXPECTED);\
+        }\
         fclose(f);\
-    };\
+    )
 
 
 
