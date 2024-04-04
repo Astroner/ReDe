@@ -16,12 +16,12 @@
         Rede_createBufferDest(dest, 256);\
         int status = Rede_compile(src, memory, dest);\
         if(status != 0) {\
-            printf("Failed to compile: %d\n", status);\
+            MATCHER_INFO("Failed to compile: %d", status);\
             MATCHER_FAIL(NO_EXPECTED);\
         }\
         for(size_t i = 0; i < sizeof(buffer); i++) {\
             MATCHER_CONDITION(PASSES_IF(buffer[i] == dest->data.buffer.buffer[i])) {\
-                printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", i, buffer[i], dest->data.buffer.buffer[i]);\
+                MATCHER_INFO("Got buffer mismatch at position %zu. Expected: %d, Got: %d", i, buffer[i], dest->data.buffer.buffer[i]);\
                 MATCHER_FAIL(EXPECTED("{ "#BYTECODE", "#__VA_ARGS__" }"));\
             }\
         }\
@@ -35,12 +35,12 @@
         Rede_createBufferDest(dest, 256);\
         int status = Rede_compile(src, memory, dest);\
         if(status != 0) {\
-            printf("Failed to compile: %d\n", status);\
+            MATCHER_INFO("Failed to compile: %d", status);\
             MATCHER_FAIL(NO_EXPECTED);\
         }\
         for(size_t i = 0; i < SIZE; i++) {\
             MATCHER_CONDITION(PASSES_IF(ARR[i] == dest->data.buffer.buffer[i])) {\
-                printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", i, ARR[i], dest->data.buffer.buffer[i]);\
+                MATCHER_INFO("Got buffer mismatch at position %zu. Expected: %d, Got: %d", i, ARR[i], dest->data.buffer.buffer[i]);\
                 MATCHER_FAIL(EXPECTED(#ARR", "#SIZE));\
             }\
         }\
@@ -51,26 +51,26 @@
         unsigned char expect[] = { BYTE, __VA_ARGS__ };\
         FILE* f = fopen(MATCHER_VALUE, "rb");\
         MATCHER_CONDITION(FAILS_IF(f == NULL)) {\
-            printf("Failed to open %s\n", MATCHER_VALUE);\
+            MATCHER_INFO("Failed to open %s", MATCHER_VALUE);\
             MATCHER_FAIL(NO_EXPECTED);\
         }\
         size_t index = 0;\
         int el;\
         while((el = getc(f)) != EOF) {\
             MATCHER_CONDITION(PASSES_IF(expect[index] == el)) {\
-                printf("Got buffer mismatch at position %zu. Expected: %d, Got: %d\n", index, expect[index], el);\
+                MATCHER_INFO("Got buffer mismatch at position %zu. Expected: %d, Got: %d", index, expect[index], el);\
                 fclose(f);\
                 MATCHER_FAIL("{ "#BYTE", "#__VA_ARGS__" }");\
             }\
             index++;\
         }\
         MATCHER_CONDITION(PASSES_IF(el == EOF)) {\
-            printf("Could not reach EOF");\
+            MATCHER_INFO("Could not reach EOF");\
             fclose(f);\
             MATCHER_FAIL(NO_EXPECTED);\
         }\
         MATCHER_CONDITION(PASSES_IF(index == sizeof(expect) / sizeof(expect[0]))) {\
-            printf("Could not reach end of the buffer");\
+            MATCHER_INFO("Could not reach end of the buffer");\
             fclose(f);\
             MATCHER_FAIL(NO_EXPECTED);\
         }\
@@ -97,7 +97,7 @@ DESCRIBE(compiler) {
             "b = random()\n"
             "log( a   2  )"
         ) TO_BE_COMPILED_TO(
-            REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
+            REDE_CODE_CALL, 5, 'r', 'a', 'n', 'd', 'o', 'm', 0,
             REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
             REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
             REDE_CODE_ASSIGN, 1, REDE_TYPE_STACK,

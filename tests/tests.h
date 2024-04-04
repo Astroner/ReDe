@@ -168,13 +168,13 @@
             };\
             runTests(&info);\
             if(info.status < 0) {\
-                TESTS_STD_PRINT("\x1B[1;31mFailed:\n");\
-                TESTS_STD_PRINT("    At %s:%d\n", __FILE__, info.failLine);\
-                TESTS_STD_PRINT("    EXPECT(%s)%s%s", info.testText, info.isNot ? " NOT " : " ", info.operatorText);\
+                TESTS_STD_SP_PRINT(TESTS_PRINT_TAB_WIDTH, "\x1B[1;31mFailed:\n");\
+                TESTS_STD_SP_PRINT(TESTS_PRINT_TAB_WIDTH, "    At %s:%d\n", __FILE__, info.failLine);\
+                TESTS_STD_SP_PRINT(TESTS_PRINT_TAB_WIDTH, "    EXPECT(%s)%s%s", info.testText, info.isNot ? " NOT " : " ", info.operatorText);\
                 if(info.expectText != NULL) {\
-                    TESTS_STD_PRINT("(%s)", info.expectText);\
+                    TESTS_STD_SP_PRINT(TESTS_PRINT_TAB_WIDTH, "(%s)", info.expectText);\
                 }\
-                TESTS_STD_PRINT("\x1B[0m\n\n\n");\
+                TESTS_STD_SP_PRINT(TESTS_PRINT_TAB_WIDTH, "\x1B[0m\n\n\n");\
                 return 1;\
             }\
     \
@@ -208,7 +208,14 @@
     TESTS_info->isNot = 1;\
 
 
-// Mather utils
+// Matcher utils
+
+// MATCHER_INFO(format, ...args)
+#define MATCHER_INFO(...)\
+    TESTS_STD_SP_PRINT(TESTS_info->spaces, "\x1B[1;34m[INFO] ");\
+    TESTS_STD_PRINT(__VA_ARGS__);\
+    TESTS_STD_PRINT("\x1B[0m\n");\
+
 #define CREATE_MATCHER(MATCHER_NAME, ...)\
     TESTS_info->operatorText = #MATCHER_NAME;\
     __VA_ARGS__;\
