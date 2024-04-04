@@ -97,7 +97,7 @@ DESCRIBE(compiler) {
             "b = random()\n"
             "log( a   2  )"
         ) TO_BE_COMPILED_TO(
-            REDE_CODE_CALL, 5, 'r', 'a', 'n', 'd', 'o', 'm', 0,
+            REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
             REDE_CODE_ASSIGN, 0, REDE_TYPE_STACK,
             REDE_CODE_CALL, 6, 'r', 'a', 'n', 'd', 'o', 'm', 0,
             REDE_CODE_ASSIGN, 1, REDE_TYPE_STACK,
