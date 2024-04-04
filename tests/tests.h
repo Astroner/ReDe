@@ -4,6 +4,7 @@
     #define TESTS_TYPES
     typedef void TESTS_ActionFunction(void);\
     struct TESTS_infoType {\
+        int spaces;\
         int failLine;\
         char* testLabel;\
         char* testText; \
@@ -16,6 +17,10 @@
     };
 #endif // TESTS_TYPES
 
+#if !defined(TESTS_PRINT_TAB_WIDTH)
+    #define TESTS_PRINT_TAB_WIDTH 4
+#endif
+
 #if !defined(TESTS_H)
 #define TESTS_H
 
@@ -26,6 +31,10 @@
     #include <stdio.h>
     #define TESTS_STD_PRINT printf
 #endif // TESTS_PRINT
+
+#define TESTS_STD_SP_PRINT(SPACES, ...)\
+    for(int S_COUNTER = 0; S_COUNTER < SPACES; S_COUNTER++) TESTS_STD_PRINT(" ");\
+    TESTS_STD_PRINT(__VA_ARGS__);\
 
 #if !defined(TESTS_STD_STRLEN)
     #include <string.h>
@@ -107,22 +116,24 @@
 #if defined(MULTI_TEST)
     #define DESCRIBE(LABEL) \
         void LABEL##__runTests(struct TESTS_infoType* TESTS_info);\
-        int LABEL(void) {\
-            TESTS_STD_PRINT("\x1B[1;33mDescribing '"#LABEL"'\x1B[0m\n");\
+        int LABEL(int spaces) {\
+            TESTS_STD_SP_PRINT(spaces, "\x1B[1;33mDescribing '"#LABEL"'\x1B[0m\n");\
+            int localSpaces = spaces + TESTS_PRINT_TAB_WIDTH;\
             struct TESTS_infoType info = {\
                 .status = 0,\
+                .spaces = localSpaces,\
                 __ADD_BEFORE_EACH(LABEL)\
                 __ADD_AFTER_EACH(LABEL)\
             };\
             LABEL##__runTests(&info);\
             if(info.status < 0) {\
-                TESTS_STD_PRINT("\x1B[1;31mFailed:\n");\
-                TESTS_STD_PRINT("    At %s:%d\n", __FILE__, info.failLine);\
-                TESTS_STD_PRINT("    EXPECT(%s)%s%s", info.testText, info.isNot ? " NOT " : " ", info.operatorText);\
+                TESTS_STD_SP_PRINT(localSpaces, "\x1B[1;31mFailed:\n");\
+                TESTS_STD_SP_PRINT(localSpaces, "    At %s:%d\n", __FILE__, info.failLine);\
+                TESTS_STD_SP_PRINT(localSpaces, "    EXPECT(%s)%s%s", info.testText, info.isNot ? " NOT " : " ", info.operatorText);\
                 if(info.expectText != NULL) {\
-                    TESTS_STD_PRINT("(%s)", info.expectText);\
+                    TESTS_STD_SP_PRINT(localSpaces, "(%s)", info.expectText);\
                 }\
-                TESTS_STD_PRINT("\x1B[0m\n");\
+                TESTS_STD_SP_PRINT(localSpaces, "\x1B[0m\n");\
 \
                 return 1;\
             }\
@@ -132,13 +143,13 @@
         void LABEL##__runTests(struct TESTS_infoType* TESTS_info)
     
     #define RUN_TESTS(...)\
-        typedef int TestSuit(void);\
         int main(void) {\
+            typedef int TestSuit(int spaces);\
             TestSuit* suits[] = { __VA_ARGS__ };\
             int status = 0;\
             TESTS_STD_PRINT("\n\n");\
             for(size_t i = 0; i < sizeof(suits) / sizeof(suits[0]); i++) {\
-                if(suits[i]() == 1) status = 1;\
+                if(suits[i](0) == 1) status = 1;\
                 TESTS_STD_PRINT("\n");\
             }\
             TESTS_STD_PRINT("\n\n");\
@@ -151,6 +162,7 @@
             TESTS_STD_PRINT("\n\n\x1B[1;33mDescribing '"#LABEL"'\x1B[0m\n");\
             struct TESTS_infoType info = {\
                 .status = 0,\
+                .spaces = TESTS_PRINT_TAB_WIDTH,\
                 __ADD_BEFORE_EACH(LABEL)\
                 __ADD_AFTER_EACH(LABEL)\
             };\
@@ -177,12 +189,12 @@
         TESTS_info->beforeEach();\
     }\
     TESTS_info->testLabel = LABEL;\
-    TESTS_STD_PRINT("\x1B[1mit "LABEL"\x1B[0m\n");\
+    TESTS_STD_SP_PRINT(TESTS_info->spaces, "\x1B[1mit "LABEL"\x1B[0m\n");\
     for(int i = 0; i < 1; i += TESTS_info->afterEach ? (TESTS_info->afterEach(), 1) : 1)
 
 #define IT_TODO(LABEL)\
     TESTS_info->status = 0;\
-    TESTS_STD_PRINT("\x1B[1;35mTODO: it "LABEL"\x1B[0m\n");
+    TESTS_STD_SP_PRINT(TESTS_info->spaces, "\x1B[1;35mTODO: it "LABEL"\x1B[0m\n");
 
 #define MATCHER_VALUE localPassedValue
 #define EXPECT(VALUE)\
